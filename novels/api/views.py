@@ -2,10 +2,16 @@
 DRF ViewSets for AI Novel Factory API.
 """
 
+import os
+import mimetypes
+from django.http import FileResponse
+from django.db.models import Sum, Count, Avg, Q
+
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
 
 from novels.models import (
@@ -251,6 +257,118 @@ class BookViewSet(viewsets.ModelViewSet):
             })
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    # =========================================================================
+    # EXPORT
+    # =========================================================================
+
+    @action(detail=True, methods=['post'])
+    def export(self, request, pk=None):
+        """
+        Generate and download a .docx or .epub export.
+
+        POST body: { "format": "docx" }  or  { "format": "epub" }
+        Returns the file as a download, or error if exporter is unavailable.
+        """
+        book = self.get_object()
+        fmt = request.data.get('format', 'docx').lower().strip('.')
+
+        if fmt not in ('docx', 'epub'):
+            return Response({'error': 'format must be "docx" or "epub"'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            from novels.exporters import BookExporter
+            exporter = BookExporter(book)
+
+            if fmt == 'docx':
+                file_path = exporter.export_docx()
+            else:
+                file_path = exporter.export_epub()
+
+            if not file_path or not os.path.exists(file_path):
+                return Response({'error': 'Export failed — no file generated'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            mime, _ = mimetypes.guess_type(file_path)
+            response = FileResponse(
+                open(file_path, 'rb'),
+                as_attachment=True,
+                filename=os.path.basename(file_path),
+                content_type=mime or 'application/octet-stream',
+            )
+            return response
+
+        except ImportError:
+            return Response(
+                {'error': 'Export dependencies not installed (python-docx / ebooklib)'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['get'])
+    def pipeline_stats(self, request):
+        """
+        Aggregate stats for the production pipeline dashboard.
+        Returns book counts per lifecycle status + revenue + quality scores.
+        """
+        qs = Book.objects.filter(is_deleted=False)
+
+        # Count per lifecycle status
+        status_counts = {}
+        for s, _ in BookLifecycleStatus.CHOICES:
+            status_counts[s] = qs.filter(lifecycle_status=s).count()
+
+        # Aggregate quality + revenue
+        agg = qs.aggregate(
+            total_books=Count('id'),
+            total_revenue=Sum('total_revenue_usd'),
+            total_words=Sum('current_word_count'),
+            avg_ai_score=Avg('ai_detection_score'),
+            avg_plagiarism=Avg('plagiarism_score'),
+            published_count=Count('id', filter=Q(
+                lifecycle_status__in=[
+                    BookLifecycleStatus.PUBLISHED_KDP,
+                    BookLifecycleStatus.PUBLISHED_ALL,
+                ]
+            )),
+        )
+
+        # Recent 5 books
+        recent_books = qs.select_related('pen_name').order_by('-updated_at')[:5]
+        recent = [
+            {
+                'id': b.id,
+                'title': b.title,
+                'pen_name': b.pen_name.name,
+                'lifecycle_status': b.lifecycle_status,
+                'progress': b.get_progress_percentage(),
+                'current_word_count': b.current_word_count,
+                'updated_at': b.updated_at.isoformat(),
+            }
+            for b in recent_books
+        ]
+
+        # Chapter stats
+        chapter_agg = Chapter.objects.filter(is_deleted=False).aggregate(
+            total=Count('id'),
+            approved=Count('id', filter=Q(status=ChapterStatus.APPROVED)),
+            published=Count('id', filter=Q(is_published=True)),
+            in_review=Count('id', filter=Q(status=ChapterStatus.QA_REVIEW)),
+        )
+
+        return Response({
+            'status_counts': status_counts,
+            'totals': {
+                'books': agg['total_books'] or 0,
+                'published': agg['published_count'] or 0,
+                'revenue_usd': float(agg['total_revenue'] or 0),
+                'words': agg['total_words'] or 0,
+                'avg_ai_detection': round(agg['avg_ai_score'] or 0, 1),
+                'avg_plagiarism': round(agg['avg_plagiarism'] or 0, 1),
+            },
+            'chapters': chapter_agg,
+            'recent_books': recent,
+        })
 
 
 class ChapterViewSet(viewsets.ModelViewSet):

@@ -7,6 +7,7 @@ import type {
   BookCover,
   KDPDimensions,
   CoverChoices,
+  PipelineStats,
   PaginatedResponse,
 } from '@/types';
 
@@ -168,6 +169,53 @@ export async function calculateKDPDimensions(params: {
 export async function getCoverChoices(): Promise<CoverChoices> {
   const { data } = await apiClient.get<CoverChoices>('/covers/choices/');
   return data;
+}
+
+// ----------------------------------------------------------------
+// Pipeline / Dashboard
+// ----------------------------------------------------------------
+export async function getPipelineStats(): Promise<PipelineStats> {
+  const { data } = await apiClient.get<PipelineStats>('/books/pipeline_stats/');
+  return data;
+}
+
+// ----------------------------------------------------------------
+// Lifecycle Actions (FSM transitions)
+// ----------------------------------------------------------------
+export type LifecycleAction =
+  | 'start_keyword_research'
+  | 'approve_keywords'
+  | 'start_description_generation'
+  | 'approve_description'
+  | 'start_bible_generation'
+  | 'approve_bible'
+  | 'start_writing'
+  | 'submit_for_qa'
+  | 'approve_for_export'
+  | 'publish_to_kdp';
+
+export async function triggerLifecycleAction(bookId: number | string, action: LifecycleAction): Promise<{ lifecycle_status: string; message: string }> {
+  const { data } = await apiClient.post(`/books/${bookId}/${action}/`);
+  return data;
+}
+
+// ----------------------------------------------------------------
+// Export
+// ----------------------------------------------------------------
+export async function exportBook(bookId: number | string, format: 'docx' | 'epub'): Promise<void> {
+  const response = await apiClient.post(
+    `/books/${bookId}/export/`,
+    { format },
+    { responseType: 'blob' },
+  );
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const a = document.createElement('a');
+  a.href = url;
+  const disposition = response.headers['content-disposition'] || '';
+  const filename = disposition.match(/filename="?([^"]+)"?/)?.[1] || `book-${bookId}.${format}`;
+  a.download = filename;
+  a.click();
+  window.URL.revokeObjectURL(url);
 }
 
 // ----------------------------------------------------------------

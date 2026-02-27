@@ -185,6 +185,36 @@ export interface CoverChoices {
 }
 
 // ============================================================
+// PIPELINE / DASHBOARD TYPES
+// ============================================================
+export interface PipelineStats {
+  status_counts: Record<string, number>;
+  totals: {
+    books: number;
+    published: number;
+    revenue_usd: number;
+    words: number;
+    avg_ai_detection: number;
+    avg_plagiarism: number;
+  };
+  chapters: {
+    total: number;
+    approved: number;
+    published: number;
+    in_review: number;
+  };
+  recent_books: {
+    id: number;
+    title: string;
+    pen_name: string;
+    lifecycle_status: string;
+    progress: number;
+    current_word_count: number;
+    updated_at: string;
+  }[];
+}
+
+// ============================================================
 // API PAGINATED RESPONSE
 // ============================================================
 export interface PaginatedResponse<T> {
