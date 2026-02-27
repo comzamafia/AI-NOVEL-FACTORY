@@ -107,6 +107,84 @@ export interface ReviewTracker {
 }
 
 // ============================================================
+// KDP COVER TYPES
+// ============================================================
+export type CoverType = 'ebook' | 'paperback';
+export type PaperType = 'bw_white' | 'bw_cream' | 'color';
+
+export interface BookCover {
+  id: number;
+  book: number;
+  cover_type: CoverType;
+  cover_type_display: string;
+  version_number: number;
+  version_note: string;
+  is_active: boolean;
+  // Paperback
+  trim_size: string;
+  trim_size_display: string;
+  paper_type: PaperType | '';
+  paper_type_display: string;
+  page_count: number | null;
+  // Calculated dims
+  ebook_width_px: number | null;
+  ebook_height_px: number | null;
+  spine_width_in: string | null;
+  total_width_in: string | null;
+  total_height_in: string | null;
+  total_width_px: number | null;
+  total_height_px: number | null;
+  // Files
+  front_cover: string | null;
+  front_cover_url: string | null;
+  full_cover: string | null;
+  full_cover_url: string | null;
+  back_cover: string | null;
+  back_cover_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface KDPEbookDimensions {
+  cover_type: 'ebook';
+  width_px: number;
+  height_px: number;
+  aspect_ratio: number;
+  file_size_kb_approx: number;
+  notes: string[];
+}
+
+export interface KDPPaperbackDimensions {
+  cover_type: 'paperback';
+  trim_size: string;
+  paper_type: string;
+  page_count: number;
+  dpi: number;
+  bleed_in: number;
+  trim_width_in: number;
+  trim_height_in: number;
+  spine_width_in: number;
+  total_width_in: number;
+  total_height_in: number;
+  total_width_px: number;
+  total_height_px: number;
+  notes: string[];
+}
+
+export type KDPDimensions = KDPEbookDimensions | KDPPaperbackDimensions;
+
+export interface CoverChoice {
+  value: string;
+  label: string;
+}
+
+export interface CoverChoices {
+  trim_sizes: CoverChoice[];
+  paper_types: CoverChoice[];
+  cover_types: CoverChoice[];
+}
+
+// ============================================================
 // API PAGINATED RESPONSE
 // ============================================================
 export interface PaginatedResponse<T> {

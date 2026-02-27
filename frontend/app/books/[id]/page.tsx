@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ExternalLink, BookOpen, Lock, ChevronRight } from 'lucide-react';
+import { ExternalLink, BookOpen, Lock, ChevronRight, ImageIcon } from 'lucide-react';
 import { getBook, getChapters, getActiveDescription, buildCoverUrl } from '@/lib/api';
 import StarRating from '@/components/StarRating';
 import UpsellBanner from '@/components/UpsellBanner';
@@ -76,6 +76,15 @@ export default async function BookPage({ params }: BookPageProps) {
               Buy on Amazon{book.current_price_usd ? ` $${parseFloat(String(book.current_price_usd)).toFixed(2)}` : ''}
             </a>
           )}
+
+          {/* Covers link */}
+          <Link
+            href={`/books/${params.id}/covers`}
+            className="flex items-center gap-2 w-full justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-sm font-medium py-2.5 px-4 rounded-xl border border-slate-700 transition-colors"
+          >
+            <ImageIcon size={15} />
+            Manage KDP Covers
+          </Link>
 
           {/* Stats */}
           <div className="w-full grid grid-cols-2 gap-2 text-center">

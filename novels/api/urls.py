@@ -11,6 +11,7 @@ from .views import (
     BookDescriptionViewSet,
     ChapterViewSet,
     StoryBibleViewSet,
+    BookCoverViewSet,
 )
 
 # Create router
@@ -20,6 +21,7 @@ router.register(r'books', BookViewSet, basename='book')
 router.register(r'book-descriptions', BookDescriptionViewSet, basename='book-description')
 router.register(r'chapters', ChapterViewSet, basename='chapter')
 router.register(r'story-bibles', StoryBibleViewSet, basename='story-bible')
+router.register(r'covers', BookCoverViewSet, basename='cover')
 
 app_name = 'novels'
 

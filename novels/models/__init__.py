@@ -42,6 +42,9 @@ from .subscription import (
     WebhookEvent,
 )
 
+# KDP Covers
+from .cover import BookCover, CoverType, PaperType, TrimSize
+
 __all__ = [
     # Base
     'TimeStampedModel',
@@ -76,4 +79,9 @@ __all__ = [
     'SubscriptionStatus',
     'ChapterPurchase',
     'WebhookEvent',
+    # KDP Covers
+    'BookCover',
+    'CoverType',
+    'PaperType',
+    'TrimSize',
 ]

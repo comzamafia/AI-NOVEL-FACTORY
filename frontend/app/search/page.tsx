@@ -1,5 +1,4 @@
 import { Suspense } from 'react';
-import Link from 'next/link';
 import { Search, BookOpen, Users } from 'lucide-react';
 import BookCard from '@/components/BookCard';
 import AuthorCard from '@/components/AuthorCard';

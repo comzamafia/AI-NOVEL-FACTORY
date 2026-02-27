@@ -23,6 +23,7 @@ from .models import (
     Subscription,
     ChapterPurchase,
     WebhookEvent,
+    BookCover,
 )
 
 
@@ -656,6 +657,56 @@ class WebhookEventAdmin(admin.ModelAdmin):
 # =============================================================================
 # ADMIN SITE CUSTOMIZATION
 # =============================================================================
+
+@admin.register(BookCover)
+class BookCoverAdmin(admin.ModelAdmin):
+    """Admin for KDP Cover versions."""
+    list_display = [
+        'book', 'cover_type', 'version_number', 'is_active',
+        'trim_size', 'paper_type', 'page_count',
+        'total_width_px', 'total_height_px', 'created_at',
+    ]
+    list_filter = ['cover_type', 'is_active', 'paper_type', 'trim_size']
+    search_fields = ['book__title', 'version_note']
+    readonly_fields = [
+        'version_number', 'spine_width_in',
+        'total_width_in', 'total_height_in',
+        'total_width_px', 'total_height_px',
+        'ebook_width_px', 'ebook_height_px',
+        'created_at', 'updated_at',
+    ]
+    fieldsets = [
+        ('Version Info', {
+            'fields': ('book', 'cover_type', 'version_number', 'version_note', 'is_active'),
+        }),
+        ('Paperback Settings', {
+            'fields': ('trim_size', 'paper_type', 'page_count'),
+            'classes': ('collapse',),
+        }),
+        ('Calculated Dimensions', {
+            'fields': (
+                'ebook_width_px', 'ebook_height_px',
+                'spine_width_in', 'total_width_in', 'total_height_in',
+                'total_width_px', 'total_height_px',
+            ),
+            'classes': ('collapse',),
+        }),
+        ('Cover Files', {
+            'fields': ('front_cover', 'full_cover', 'back_cover'),
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    ]
+    actions = ['set_active']
+
+    def set_active(self, request, queryset):
+        for cover in queryset:
+            cover.activate()
+        self.message_user(request, f'{queryset.count()} cover(s) set as active.')
+    set_active.short_description = 'Set selected covers as active'
+
 
 admin.site.site_header = "AI Novel Factory Admin"
 admin.site.site_title = "AI Novel Factory"

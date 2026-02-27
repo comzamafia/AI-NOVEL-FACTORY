@@ -16,7 +16,10 @@ from novels.models import (
     Chapter,
     BookLifecycleStatus,
     ChapterStatus,
+    BookCover,
+    CoverType,
 )
+from novels.utils.kdp_calculator import calc_ebook, calc_paperback, get_trim_size_choices, get_paper_type_choices
 from novels.tasks.keywords import run_keyword_research
 from novels.tasks.content import generate_book_description, generate_story_bible, rewrite_chapter
 from novels.throttles import AIGenerationThrottle, BurstThrottle, ChapterWriteThrottle
@@ -29,6 +32,8 @@ from .serializers import (
     ChapterListSerializer,
     ChapterDetailSerializer,
     StoryBibleSerializer,
+    BookCoverSerializer,
+    BookCoverListSerializer,
 )
 
 
@@ -350,4 +355,118 @@ class StoryBibleViewSet(viewsets.ModelViewSet):
             'status': 'success',
             'summary': story_bible.summary_for_ai,
             'message': 'AI summary generated'
+        })
+
+
+class BookCoverViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing KDP Book Cover versions.
+
+    Endpoints:
+      GET    /api/covers/                     — list all covers (filterable)
+      POST   /api/covers/                     — create new cover version
+      GET    /api/covers/{id}/                — retrieve a cover
+      PATCH  /api/covers/{id}/                — update cover metadata / upload file
+      DELETE /api/covers/{id}/                — soft delete
+      POST   /api/covers/{id}/activate/       — mark this version as active
+      GET    /api/covers/calculate/           — KDP dimension calculator
+      GET    /api/covers/choices/             — return trim/paper choices
+    """
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['book', 'cover_type', 'is_active']
+    ordering_fields = ['version_number', 'created_at']
+    ordering = ['-version_number']
+
+    def get_queryset(self):
+        return BookCover.objects.filter(is_deleted=False).select_related('book')
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return BookCoverListSerializer
+        return BookCoverSerializer
+
+    def perform_create(self, serializer):
+        """Auto-calculate KDP dims on create if enough info is provided."""
+        instance = serializer.save()
+        self._apply_calculated_dims(instance)
+        instance.save()
+
+    def perform_update(self, serializer):
+        """Recalculate dims whenever metadata changes."""
+        instance = serializer.save()
+        self._apply_calculated_dims(instance)
+        instance.save()
+
+    def _apply_calculated_dims(self, cover: BookCover):
+        """Fill in KDP-calculated dimension fields on the cover instance."""
+        if cover.cover_type == CoverType.EBOOK:
+            dims = calc_ebook()
+            cover.ebook_width_px  = dims.width_px
+            cover.ebook_height_px = dims.height_px
+        elif cover.cover_type == CoverType.PAPERBACK:
+            if cover.trim_size and cover.paper_type and cover.page_count:
+                dims = calc_paperback(
+                    trim_size=cover.trim_size,
+                    paper_type=cover.paper_type,
+                    page_count=cover.page_count,
+                )
+                if dims:
+                    cover.spine_width_in  = dims.spine_width_in
+                    cover.total_width_in  = dims.total_width_in
+                    cover.total_height_in = dims.total_height_in
+                    cover.total_width_px  = dims.total_width_px
+                    cover.total_height_px = dims.total_height_px
+
+    # ── Custom Actions ────────────────────────────────────────────────────
+
+    @action(detail=True, methods=['post'])
+    def activate(self, request, pk=None):
+        """Set this cover version as the active cover for its type."""
+        cover = self.get_object()
+        cover.activate()
+        return Response(BookCoverSerializer(cover, context={'request': request}).data)
+
+    @action(detail=False, methods=['get'])
+    def calculate(self, request):
+        """
+        KDP dimension calculator.
+
+        Query params for eBook:
+          cover_type=ebook
+
+        Query params for Paperback:
+          cover_type=paperback
+          trim_size=6x9
+          paper_type=bw_white
+          page_count=300
+        """
+        cover_type = request.query_params.get('cover_type', 'ebook')
+
+        if cover_type == CoverType.EBOOK:
+            return Response(calc_ebook().to_dict())
+
+        # Paperback
+        trim_size  = request.query_params.get('trim_size', '6x9')
+        paper_type = request.query_params.get('paper_type', 'bw_white')
+        try:
+            page_count = int(request.query_params.get('page_count', 300))
+        except ValueError:
+            return Response({'error': 'page_count must be an integer'}, status=status.HTTP_400_BAD_REQUEST)
+
+        dims = calc_paperback(trim_size, paper_type, page_count)
+        if not dims:
+            return Response(
+                {'error': f'Unknown trim_size "{trim_size}" or paper_type "{paper_type}"'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return Response(dims.to_dict())
+
+    @action(detail=False, methods=['get'])
+    def choices(self, request):
+        """Return all valid trim size and paper type choices."""
+        return Response({
+            'trim_sizes':   get_trim_size_choices(),
+            'paper_types':  get_paper_type_choices(),
+            'cover_types':  [{'value': v, 'label': l} for v, l in [('ebook', 'eBook'), ('paperback', 'Paperback')]],
         })

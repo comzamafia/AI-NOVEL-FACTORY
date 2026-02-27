@@ -13,6 +13,7 @@ from novels.models import (
     PricingStrategy,
     ReviewTracker,
     DistributionChannel,
+    BookCover,
 )
 
 
@@ -316,3 +317,107 @@ class BookCreateSerializer(serializers.ModelSerializer):
             'target_word_count',
             'is_ai_generated_disclosure',
         ]
+
+
+# =============================================================================
+# KDP COVER SERIALIZERS
+# =============================================================================
+
+class BookCoverSerializer(serializers.ModelSerializer):
+    """Full serializer for BookCover — used in create/update/retrieve."""
+    cover_type_display  = serializers.CharField(source='get_cover_type_display',  read_only=True)
+    paper_type_display  = serializers.CharField(source='get_paper_type_display',  read_only=True)
+    trim_size_display   = serializers.CharField(source='get_trim_size_display',   read_only=True)
+    front_cover_url = serializers.SerializerMethodField()
+    full_cover_url  = serializers.SerializerMethodField()
+    back_cover_url  = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BookCover
+        fields = [
+            'id',
+            'book',
+            'cover_type',
+            'cover_type_display',
+            'version_number',
+            'version_note',
+            'is_active',
+            # Paperback
+            'trim_size',
+            'trim_size_display',
+            'paper_type',
+            'paper_type_display',
+            'page_count',
+            # Calculated dimensions
+            'ebook_width_px',
+            'ebook_height_px',
+            'spine_width_in',
+            'total_width_in',
+            'total_height_in',
+            'total_width_px',
+            'total_height_px',
+            # Files
+            'front_cover',
+            'front_cover_url',
+            'full_cover',
+            'full_cover_url',
+            'back_cover',
+            'back_cover_url',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = [
+            'version_number',
+            'created_at',
+            'updated_at',
+        ]
+
+    def get_front_cover_url(self, obj):
+        request = self.context.get('request')
+        if obj.front_cover and request:
+            return request.build_absolute_uri(obj.front_cover.url)
+        return None
+
+    def get_full_cover_url(self, obj):
+        request = self.context.get('request')
+        if obj.full_cover and request:
+            return request.build_absolute_uri(obj.full_cover.url)
+        return None
+
+    def get_back_cover_url(self, obj):
+        request = self.context.get('request')
+        if obj.back_cover and request:
+            return request.build_absolute_uri(obj.back_cover.url)
+        return None
+
+
+class BookCoverListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for cover lists."""
+    cover_type_display = serializers.CharField(source='get_cover_type_display', read_only=True)
+    front_cover_url    = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BookCover
+        fields = [
+            'id',
+            'book',
+            'cover_type',
+            'cover_type_display',
+            'version_number',
+            'version_note',
+            'is_active',
+            'trim_size',
+            'paper_type',
+            'page_count',
+            'total_width_px',
+            'total_height_px',
+            'front_cover_url',
+            'created_at',
+        ]
+
+    def get_front_cover_url(self, obj):
+        request = self.context.get('request')
+        if obj.front_cover and request:
+            return request.build_absolute_uri(obj.front_cover.url)
+        return None
+

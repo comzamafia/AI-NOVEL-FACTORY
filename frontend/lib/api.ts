@@ -4,6 +4,9 @@ import type {
   PenName,
   Chapter,
   BookDescription,
+  BookCover,
+  KDPDimensions,
+  CoverChoices,
   PaginatedResponse,
 } from '@/types';
 
@@ -110,6 +113,61 @@ export async function getActiveDescription(bookId: number | string): Promise<Boo
   } catch {
     return null;
   }
+}
+
+// ----------------------------------------------------------------
+// Book Covers (KDP)
+// ----------------------------------------------------------------
+export async function getCovers(params?: {
+  book?: number | string;
+  cover_type?: string;
+  is_active?: boolean;
+}): Promise<PaginatedResponse<BookCover>> {
+  const { data } = await apiClient.get<PaginatedResponse<BookCover>>('/covers/', { params });
+  return data;
+}
+
+export async function getCover(id: number | string): Promise<BookCover> {
+  const { data } = await apiClient.get<BookCover>(`/covers/${id}/`);
+  return data;
+}
+
+export async function createCover(formData: FormData): Promise<BookCover> {
+  const { data } = await apiClient.post<BookCover>('/covers/', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return data;
+}
+
+export async function updateCover(id: number | string, formData: FormData): Promise<BookCover> {
+  const { data } = await apiClient.patch<BookCover>(`/covers/${id}/`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return data;
+}
+
+export async function activateCover(id: number | string): Promise<BookCover> {
+  const { data } = await apiClient.post<BookCover>(`/covers/${id}/activate/`);
+  return data;
+}
+
+export async function deleteCover(id: number | string): Promise<void> {
+  await apiClient.delete(`/covers/${id}/`);
+}
+
+export async function calculateKDPDimensions(params: {
+  cover_type: string;
+  trim_size?: string;
+  paper_type?: string;
+  page_count?: number;
+}): Promise<KDPDimensions> {
+  const { data } = await apiClient.get<KDPDimensions>('/covers/calculate/', { params });
+  return data;
+}
+
+export async function getCoverChoices(): Promise<CoverChoices> {
+  const { data } = await apiClient.get<CoverChoices>('/covers/choices/');
+  return data;
 }
 
 // ----------------------------------------------------------------
