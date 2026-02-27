@@ -9,7 +9,13 @@ export interface PenName {
   bio: string;
   writing_style_prompt?: string;
   profile_image?: string;
+  website_url?: string;
+  amazon_author_url?: string;
+  total_books_published?: number;
+  total_revenue_usd?: string | number;
   book_count?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Book {

@@ -219,6 +219,85 @@ export async function exportBook(bookId: number | string, format: 'docx' | 'epub
 }
 
 // ----------------------------------------------------------------
+// Chapter Actions
+// ----------------------------------------------------------------
+export async function approveChapter(chapterId: number | string): Promise<{ chapter_status: string; message: string }> {
+  const { data } = await apiClient.post(`/chapters/${chapterId}/approve/`);
+  return data;
+}
+
+export async function rejectChapter(chapterId: number | string, notes: string): Promise<{ chapter_status: string; message: string }> {
+  const { data } = await apiClient.post(`/chapters/${chapterId}/reject/`, { notes });
+  return data;
+}
+
+export async function markChapterReady(chapterId: number | string): Promise<{ chapter_status: string; message: string }> {
+  const { data } = await apiClient.post(`/chapters/${chapterId}/mark_ready_to_write/`);
+  return data;
+}
+
+export async function updateChapter(
+  chapterId: number | string,
+  payload: { is_published?: boolean; is_free?: boolean; title?: string }
+): Promise<Chapter> {
+  const { data } = await apiClient.patch<Chapter>(`/chapters/${chapterId}/`, payload);
+  return data;
+}
+
+// ----------------------------------------------------------------
+// Book Create / Edit / Delete (admin actions)
+// ----------------------------------------------------------------
+export interface BookCreatePayload {
+  title: string;
+  subtitle?: string;
+  synopsis?: string;
+  pen_name: number;
+  target_chapter_count?: number;
+  target_word_count?: number;
+  genre?: string;
+}
+
+export async function createBook(payload: BookCreatePayload): Promise<Book> {
+  const { data } = await apiClient.post<Book>('/books/', payload);
+  return data;
+}
+
+export async function updateBook(id: number | string, payload: Partial<BookCreatePayload>): Promise<Book> {
+  const { data } = await apiClient.patch<Book>(`/books/${id}/`, payload);
+  return data;
+}
+
+export async function deleteBook(id: number | string): Promise<void> {
+  await apiClient.delete(`/books/${id}/`);
+}
+
+// ----------------------------------------------------------------
+// Pen Name Create / Edit / Delete (admin actions)
+// ----------------------------------------------------------------
+export interface PenNamePayload {
+  name: string;
+  niche_genre?: string;
+  bio?: string;
+  writing_style_prompt?: string;
+  website_url?: string;
+  amazon_author_url?: string;
+}
+
+export async function createPenName(payload: PenNamePayload): Promise<PenName> {
+  const { data } = await apiClient.post<PenName>('/pen-names/', payload);
+  return data;
+}
+
+export async function updatePenName(id: number | string, payload: Partial<PenNamePayload>): Promise<PenName> {
+  const { data } = await apiClient.patch<PenName>(`/pen-names/${id}/`, payload);
+  return data;
+}
+
+export async function deletePenName(id: number | string): Promise<void> {
+  await apiClient.delete(`/pen-names/${id}/`);
+}
+
+// ----------------------------------------------------------------
 // Utility helpers
 // ----------------------------------------------------------------
 export function buildCoverUrl(book: Book): string {

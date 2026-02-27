@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   BarChart3, BookOpen, FileText, Globe, TrendingUp,
-  CheckCircle, RefreshCw, AlertCircle, DollarSign,
+  CheckCircle, RefreshCw, AlertCircle, DollarSign, UserCog, BookPlus,
 } from 'lucide-react';
 import { getPipelineStats } from '@/lib/api';
 import type { PipelineStats } from '@/types';
@@ -186,11 +186,13 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Links */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {[
-            { href: '/books',   icon: <BookOpen size={18} />,  label: 'Browse Books',    sub: 'Storefront view' },
-            { href: '/authors', icon: <Globe size={18} />,     label: 'Pen Names',       sub: 'Authors overview' },
-            { href: '/search',  icon: <FileText size={18} />,  label: 'Search',          sub: 'Find anything' },
+            { href: '/books/new', icon: <BookPlus size={18} />,  label: 'New Book',        sub: 'Create a book' },
+            { href: '/pen-names', icon: <UserCog size={18} />,   label: 'Pen Names',       sub: 'Manage authors' },
+            { href: '/books',     icon: <BookOpen size={18} />,  label: 'Browse Books',    sub: 'Storefront view' },
+            { href: '/authors',   icon: <Globe size={18} />,     label: 'Authors',         sub: 'Public view' },
+            { href: '/search',    icon: <FileText size={18} />,  label: 'Search',          sub: 'Find anything' },
           ].map((l) => (
             <Link
               key={l.href}

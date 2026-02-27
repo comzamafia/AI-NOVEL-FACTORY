@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useState, useRef } from 'react';
-import { BookOpen, Menu, X, Users, Home, BookMarked, Search, BarChart3 } from 'lucide-react';
+import { BookOpen, Menu, X, Users, Home, BookMarked, Search, BarChart3, UserCog, BookPlus } from 'lucide-react';
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -18,6 +18,8 @@ export default function Navbar() {
     { href: '/books',     label: 'Books',     icon: <BookMarked size={15} /> },
     { href: '/authors',   label: 'Authors',   icon: <Users size={15} /> },
     { href: '/dashboard', label: 'Dashboard', icon: <BarChart3 size={15} /> },
+    { href: '/pen-names', label: 'Pen Names', icon: <UserCog size={15} /> },
+    { href: '/books/new', label: 'New Book',  icon: <BookPlus size={15} /> },
   ];
 
   const handleSearch = (q: string) => {
