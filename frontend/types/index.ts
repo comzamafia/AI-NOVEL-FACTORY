@@ -44,7 +44,10 @@ export type BookLifecycleStatus =
   | 'concept_pending'
   | 'keyword_research'
   | 'keyword_approved'
+  | 'description_generation'
+  | 'description_approved'
   | 'bible_generation'
+  | 'bible_approved'
   | 'writing_in_progress'
   | 'qa_review'
   | 'export_ready'
@@ -100,16 +103,6 @@ export interface ChapterPurchase {
   stripe_payment_intent_id: string;
   amount_paid_usd: number;
   purchased_at: string;
-}
-
-export interface ReviewTracker {
-  book: number;
-  total_reviews: number;
-  avg_rating: number;
-  reviews_week_1: number;
-  reviews_week_2: number;
-  reviews_week_3: number;
-  reviews_week_4: number;
 }
 
 // ============================================================

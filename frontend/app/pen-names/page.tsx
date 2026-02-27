@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   UserPlus,
   Pencil,
@@ -396,10 +397,13 @@ export default function PenNamesPage() {
                 {/* Top section */}
                 <div className="p-5 flex items-start gap-4">
                   {/* Avatar */}
-                  <img
+                  <Image
                     src={buildAvatarUrl(pn)}
                     alt={pn.name}
+                    width={56}
+                    height={56}
                     className="w-14 h-14 rounded-full object-cover shrink-0 ring-2 ring-slate-700"
+                    unoptimized
                   />
                   <div className="min-w-0 flex-1">
                     <h3 className="font-bold text-white text-base truncate">{pn.name}</h3>

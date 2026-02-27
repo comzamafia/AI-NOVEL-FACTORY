@@ -3,9 +3,11 @@ DRF ViewSets for AI Novel Factory API.
 """
 
 import os
+import datetime
 import mimetypes
 from django.http import FileResponse
 from django.db.models import Sum, Count, Avg, Q
+from django.utils import timezone
 
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
@@ -400,8 +402,6 @@ class BookViewSet(viewsets.ModelViewSet):
                 review_data = {'total_reviews': 0, 'avg_rating': 0, 'arc_reviews_received': 0}
 
             # Ads aggregation (last 30 days)
-            from django.utils import timezone
-            import datetime
             thirty_ago = timezone.now().date() - datetime.timedelta(days=30)
             ads_agg = b.ads_performance.filter(report_date__gte=thirty_ago).aggregate(
                 total_spend=Sum('spend_usd'),
@@ -712,7 +712,6 @@ class KeywordResearchViewSet(viewsets.ModelViewSet):
     def re_run(self, request, pk=None):
         """Trigger a fresh keyword research run via Celery."""
         kw = self.get_object()
-        from novels.tasks.keywords import run_keyword_research
         run_keyword_research.delay(kw.book_id)
         return Response({
             'status': 'queued',

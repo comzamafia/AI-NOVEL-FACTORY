@@ -12,6 +12,7 @@ Full configuration with:
 
 import os
 from pathlib import Path
+from celery.schedules import crontab
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -224,12 +225,19 @@ REST_FRAMEWORK = {
 # CORS HEADERS
 # =============================================================================
 
-CORS_ALLOWED_ORIGINS = [
+# Default dev origins; override in production via CORS_ALLOWED_ORIGINS env var
+# e.g. CORS_ALLOWED_ORIGINS=https://novelsfactory.com,https://www.novelsfactory.com
+_default_cors = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
     'http://localhost:3001',
     'http://127.0.0.1:3001',
 ]
+_env_cors = os.getenv('CORS_ALLOWED_ORIGINS', '')
+CORS_ALLOWED_ORIGINS = (
+    [o.strip() for o in _env_cors.split(',') if o.strip()]
+    if _env_cors else _default_cors
+)
 
 CORS_ALLOW_CREDENTIALS = True
 
@@ -249,8 +257,6 @@ CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
 # Static fallback schedule — seeded into DB on first run if not already present
-from celery.schedules import crontab  # noqa: E402
-
 CELERY_BEAT_SCHEDULE = {
     # ── Maintenance ─────────────────────────────────────────────────────────
     'daily-db-backup': {

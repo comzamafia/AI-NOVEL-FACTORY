@@ -21,8 +21,25 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000,
+  timeout: 15000,
 });
+
+// Normalise error responses so callers always receive a plain Error with a
+// human-readable message rather than raw Axios errors.
+apiClient.interceptors.response.use(
+  response => response,
+  error => {
+    if (axios.isAxiosError(error)) {
+      const detail =
+        error.response?.data?.detail ??
+        error.response?.data?.error ??
+        error.response?.data?.message ??
+        error.message;
+      return Promise.reject(new Error(String(detail)));
+    }
+    return Promise.reject(error);
+  },
+);
 
 // ----------------------------------------------------------------
 // Books
