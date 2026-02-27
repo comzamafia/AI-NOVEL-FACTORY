@@ -1,0 +1,116 @@
+﻿{% extends "admin/base_site.html" %}
+
+{% block title %}Story Bible â€” {{ book.title }}{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  <div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Home</a> &rsaquo;
+    <a href="{% url 'admin:novels_book_changelist' %}">Books</a> &rsaquo;
+    <a href="{% url 'admin:novels_book_change' book.pk %}">{{ book.title }}</a> &rsaquo;
+    Story Bible
+  </div>
+
+  <h1>ðŸ“– Story Bible â€” <em>{{ book.title }}</em></h1>
+  <p>Lifecycle: <strong>{{ book.get_lifecycle_status_display }}</strong></p>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="messagelist"><p class="{{ msg.tags }}">{{ msg }}</p></div>
+    {% endfor %}
+  {% endif %}
+
+  <div style="display:grid; grid-template-columns: 2fr 1fr; gap:24px;">
+
+    <div>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="form_action" id="form_action" value="save">
+
+        <fieldset class="module aligned">
+          <h2>ðŸŒ World Building & Setting</h2>
+          <div class="form-row">
+            {{ form.world_building }}
+            {{ form.world_building.errors }}
+          </div>
+        </fieldset>
+
+        <fieldset class="module aligned">
+          <h2>ðŸ‘¥ Main Characters</h2>
+          <div class="form-row">
+            {{ form.main_characters }}
+            <p class="help">JSON format or plain text description of all major characters.</p>
+            {{ form.main_characters.errors }}
+          </div>
+        </fieldset>
+
+        <fieldset class="module aligned">
+          <h2>â±ï¸ Timeline</h2>
+          <div class="form-row">
+            {{ form.timeline }}
+            {{ form.timeline.errors }}
+          </div>
+        </fieldset>
+
+        <fieldset class="module aligned">
+          <h2>ðŸ“ Four-Act Outline</h2>
+          <div class="form-row">
+            {{ form.four_act_outline }}
+            {{ form.four_act_outline.errors }}
+          </div>
+        </fieldset>
+
+        <fieldset class="module aligned">
+          <h2>ðŸ”Ž Clue & Red Herring Tracker</h2>
+          <div class="form-row">
+            {{ form.clue_tracker }}
+            {{ form.clue_tracker.errors }}
+          </div>
+        </fieldset>
+
+        {% if form.non_field_errors %}
+          <div class="errornote">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <div class="submit-row">
+          <input type="submit" value="ðŸ’¾ Save" class="default"
+            onclick="document.getElementById('form_action').value='save'">
+          <button type="submit"
+            onclick="document.getElementById('form_action').value='approve'; return confirm('Approve Story Bible and move to Writing phase?')"
+            style="background:#417690; color:#fff; padding:8px 16px; margin-left:8px; border:none; cursor:pointer;">
+            âœ… Approve &amp; Start Writing Phase
+          </button>
+        </div>
+      </form>
+    </div>
+
+    {# Chapter Briefs sidebar #}
+    <div>
+      <h2>ðŸ“„ Chapter Briefs (first 30)</h2>
+      {% if chapters %}
+        <table style="width:100%; font-size:12px;">
+          <thead><tr><th>#</th><th>Status</th><th>Words</th></tr></thead>
+          <tbody>
+            {% for ch in chapters %}
+            <tr>
+              <td>{{ ch.chapter_number }}</td>
+              <td>
+                <span style="
+                  padding:2px 6px; border-radius:3px; font-size:11px;
+                  background:{% if ch.status == 'approved' %}#d4edda{% elif ch.status == 'pending_qa' %}#fff3cd{% elif ch.status == 'rejected' %}#f8d7da{% else %}#e9ecef{% endif %};
+                ">{{ ch.get_status_display }}</span>
+              </td>
+              <td>{{ ch.word_count }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p style="color:#999;">No chapters created yet.</p>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+

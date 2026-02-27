@@ -1,0 +1,127 @@
+{% extends "admin/base_site.html" %}
+
+{% block title %}Review & ARC — {{ book.title }}{% endblock %}
+
+{% block content %}
+<div style="max-width:1100px">
+  <h1>⭐ Review Velocity & ARC — <em>{{ book.title }}</em></h1>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="messagelist"><p class="{{ msg.tags }}">{{ msg }}</p></div>
+    {% endfor %}
+  {% endif %}
+
+  {% if low_rating_alert %}
+    <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:1rem;margin-bottom:1rem">
+      ⚠️ <strong>Low Rating Alert:</strong> Average rating is {{ tracker.avg_rating }}★ — below 3.5 threshold. Review negative feedback immediately.
+    </div>
+  {% endif %}
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem">
+    <!-- Review Stats -->
+    <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:1.5rem">
+      <h2>📊 Review Stats</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+        <div style="text-align:center;padding:1rem;background:#f8f8f8;border-radius:6px">
+          <div style="font-size:2rem;font-weight:bold;color:#007bff">{{ tracker.total_reviews }}</div>
+          <div style="color:#666">Total Reviews</div>
+        </div>
+        <div style="text-align:center;padding:1rem;background:{% if tracker.avg_rating >= 4 %}#d4edda{% elif tracker.avg_rating >= 3.5 %}#fff3cd{% else %}#f8d7da{% endif %};border-radius:6px">
+          <div style="font-size:2rem;font-weight:bold">{{ tracker.avg_rating }}★</div>
+          <div style="color:#666">Avg Rating</div>
+        </div>
+      </div>
+
+      <h3>Weekly Velocity</h3>
+      <canvas id="velocityChart" height="120"></canvas>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;margin-top:0.5rem;text-align:center;font-size:0.85rem">
+        <div>Week 1<br><strong>{{ tracker.reviews_week_1 }}</strong></div>
+        <div>Week 2<br><strong>{{ tracker.reviews_week_2 }}</strong></div>
+        <div>Week 3<br><strong>{{ tracker.reviews_week_3 }}</strong></div>
+        <div>Week 4<br><strong>{{ tracker.reviews_week_4 }}</strong></div>
+      </div>
+
+      {% if tracker.positive_themes %}
+        <h3 style="margin-top:1rem">✅ Positive Themes</h3>
+        <ul>{% for t in tracker.positive_themes %}<li>{{ t }}</li>{% endfor %}</ul>
+      {% endif %}
+      {% if tracker.negative_themes %}
+        <h3>❌ Negative Themes</h3>
+        <ul>{% for t in tracker.negative_themes %}<li>{{ t }}</li>{% endfor %}</ul>
+      {% endif %}
+
+      <h3>Manual Update</h3>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="update_manual">
+        <table style="font-size:0.9rem">
+          <tr><td>Total Reviews</td><td><input type="number" name="total_reviews" value="{{ tracker.total_reviews }}" style="width:80px"></td></tr>
+          <tr><td>Avg Rating</td><td><input type="number" name="avg_rating" value="{{ tracker.avg_rating }}" step="0.1" min="0" max="5" style="width:80px"></td></tr>
+          <tr><td>Week 1</td><td><input type="number" name="reviews_week_1" value="{{ tracker.reviews_week_1 }}" style="width:80px"></td></tr>
+          <tr><td>Week 2</td><td><input type="number" name="reviews_week_2" value="{{ tracker.reviews_week_2 }}" style="width:80px"></td></tr>
+          <tr><td>Week 3</td><td><input type="number" name="reviews_week_3" value="{{ tracker.reviews_week_3 }}" style="width:80px"></td></tr>
+          <tr><td>Week 4</td><td><input type="number" name="reviews_week_4" value="{{ tracker.reviews_week_4 }}" style="width:80px"></td></tr>
+        </table>
+        <button type="submit" class="button" style="margin-top:0.5rem">💾 Save Manual Data</button>
+      </form>
+    </div>
+
+    <!-- ARC Campaign -->
+    <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:1.5rem">
+      <h2>📬 ARC Campaign</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem;margin-bottom:1rem">
+        <div style="text-align:center;padding:0.75rem;background:#f8f8f8;border-radius:6px">
+          <div style="font-size:1.5rem;font-weight:bold">{{ tracker.arc_emails_sent }}</div>
+          <div style="font-size:0.75rem;color:#666">Emails Sent</div>
+        </div>
+        <div style="text-align:center;padding:0.75rem;background:#f8f8f8;border-radius:6px">
+          <div style="font-size:1.5rem;font-weight:bold">{{ tracker.arc_reviews_received }}</div>
+          <div style="font-size:0.75rem;color:#666">Reviews Received</div>
+        </div>
+        <div style="text-align:center;padding:0.75rem;background:#d4edda;border-radius:6px">
+          <div style="font-size:1.5rem;font-weight:bold">{{ tracker.arc_conversion_rate|floatformat:1 }}%</div>
+          <div style="font-size:0.75rem;color:#666">Conversion Rate</div>
+        </div>
+      </div>
+
+      <p>Reliable ARC Readers in DB: <strong>{{ arc_readers }}</strong></p>
+
+      <div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:1rem">
+        <form method="post">
+          {% csrf_token %}
+          <button type="submit" name="action" value="scrape" class="button">🔍 Scrape Amazon Reviews Now</button>
+        </form>
+        <form method="post">
+          {% csrf_token %}
+          <button type="submit" name="action" value="send_arc" class="button default" onclick="return confirm('Send ARC emails to all reliable readers?')">📧 Send ARC Campaign</button>
+        </form>
+        <a href="{% url 'arc_reader_list' %}" class="button">👥 Manage ARC Reader List</a>
+        <a href="{% url 'arc_reader_import' %}" class="button">📤 Import Readers from CSV</a>
+      </div>
+
+      <p style="margin-top:1rem;color:#666;font-size:0.85rem">
+        Last scraped: {{ tracker.last_scraped|default:"Never" }}
+      </p>
+    </div>
+  </div>
+
+  <p style="margin-top:1rem"><a href="{% url 'admin:novels_book_change' book.pk %}">← Back to Book</a></p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+new Chart(document.getElementById('velocityChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+    datasets: [{
+      label: 'Reviews',
+      data: {{ velocity_data|safe }},
+      backgroundColor: ['#007bff','#28a745','#ffc107','#dc3545'],
+    }]
+  },
+  options: { responsive: true, scales: { y: { beginAtZero: true } } }
+});
+</script>
+{% endblock %}

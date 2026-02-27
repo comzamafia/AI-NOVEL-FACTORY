@@ -1,0 +1,101 @@
+﻿{% extends "admin/base_site.html" %}
+
+{% block title %}KDP Pre-Flight Checklist â€” {{ book.title }}{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  <div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Home</a> &rsaquo;
+    <a href="{% url 'admin:novels_book_changelist' %}">Books</a> &rsaquo;
+    <a href="{% url 'admin:novels_book_change' book.pk %}">{{ book.title }}</a> &rsaquo;
+    KDP Pre-Flight
+  </div>
+
+  <h1>âœˆï¸ KDP Pre-Flight Checklist â€” <em>{{ book.title }}</em></h1>
+  <p style="color:#666;">All items must be confirmed to unlock the Export button.</p>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="messagelist"><p class="{{ msg.tags }}">{{ msg }}</p></div>
+    {% endfor %}
+  {% endif %}
+
+  <form method="post" id="preflight-form">
+    {% csrf_token %}
+
+    <fieldset class="module aligned">
+      <h2>1. AI Disclosure</h2>
+      <div class="form-row">
+        {{ form.ai_disclosure }}
+        {{ form.ai_disclosure.errors }}
+      </div>
+    </fieldset>
+
+    <fieldset class="module aligned">
+      <h2>2. Copyright & Legal</h2>
+      {% for field in form %}
+        {% if field.name in "copyright_check trademark_check derivative_check" %}
+        <div class="form-row" style="display:flex; align-items:center; gap:8px;">
+          {{ field }}
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field.errors }}
+        </div>
+        {% endif %}
+      {% endfor %}
+    </fieldset>
+
+    <fieldset class="module aligned">
+      <h2>3. Quality Scores <small style="font-weight:normal; color:#666;">(from automated checks)</small></h2>
+      <div class="form-row">
+        <label>{{ form.originality_ai_score.label }} *</label>
+        {{ form.originality_ai_score }}
+        <p class="help">{{ form.originality_ai_score.help_text }}</p>
+        {{ form.originality_ai_score.errors }}
+      </div>
+      <div class="form-row">
+        <label>{{ form.plagiarism_score.label }} *</label>
+        {{ form.plagiarism_score }}
+        <p class="help">{{ form.plagiarism_score.help_text }}</p>
+        {{ form.plagiarism_score.errors }}
+      </div>
+      <div class="form-row" style="display:flex; align-items:center; gap:8px;">
+        {{ form.quality_check }}
+        <label for="{{ form.quality_check.id_for_label }}">{{ form.quality_check.label }}</label>
+        {{ form.quality_check.errors }}
+      </div>
+    </fieldset>
+
+    <fieldset class="module aligned">
+      <h2>4. Copyright Registration</h2>
+      <div class="form-row">
+        {{ form.copyright_registered }}
+        {{ form.copyright_registered.errors }}
+      </div>
+    </fieldset>
+
+    <fieldset class="module aligned">
+      <h2>5. Metadata Lock</h2>
+      <div class="form-row" style="display:flex; align-items:center; gap:8px;">
+        {{ form.keyword_metadata_locked }}
+        <label for="{{ form.keyword_metadata_locked.id_for_label }}">{{ form.keyword_metadata_locked.label }}</label>
+        {{ form.keyword_metadata_locked.errors }}
+      </div>
+    </fieldset>
+
+    {% if form.non_field_errors %}
+      <div class="errornote">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="submit-row">
+      <button type="submit"
+        onclick="return confirm('Confirm all pre-flight checks are complete and proceed to export?')"
+        style="background:#28a745; color:#fff; padding:10px 24px; border:none; font-size:14px; cursor:pointer;">
+        âœ… Confirm Pre-Flight &amp; Unlock Export
+      </button>
+      <a href="{% url 'admin:novels_book_change' book.pk %}" class="button" style="margin-left:8px;">â† Back</a>
+      <a href="{% url 'qa_review' book.pk %}" class="button" style="margin-left:8px;">â† Back to QA</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+

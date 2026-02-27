@@ -1,0 +1,146 @@
+﻿{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}Keyword Research â€” {{ book.title }}{% endblock %}
+
+{% block content %}
+<div id="content-main">
+
+  {# Breadcrumb #}
+  <div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Home</a> &rsaquo;
+    <a href="{% url 'admin:novels_book_changelist' %}">Books</a> &rsaquo;
+    <a href="{% url 'admin:novels_book_change' book.pk %}">{{ book.title }}</a> &rsaquo;
+    Keyword Research
+  </div>
+
+  <h1>ðŸ” Keyword Research â€” <em>{{ book.title }}</em></h1>
+  <p>Lifecycle: <strong>{{ book.get_lifecycle_status_display }}</strong></p>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="messagelist"><p class="{{ msg.tags }}">{{ msg }}</p></div>
+    {% endfor %}
+  {% endif %}
+
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px;">
+
+    {# --- Left: KDP Metadata Form --- #}
+    <div>
+      <h2>ðŸ“‹ KDP Metadata</h2>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save">
+
+        <fieldset class="module aligned">
+          <h2>Title & Subtitle</h2>
+          <div class="form-row">
+            <label>Suggested Title *</label>
+            {{ form.suggested_title }}
+            <p class="help">{{ form.suggested_title.help_text }}</p>
+            {{ form.suggested_title.errors }}
+          </div>
+          <div class="form-row">
+            <label>Suggested Subtitle</label>
+            {{ form.suggested_subtitle }}
+            {{ form.suggested_subtitle.errors }}
+          </div>
+        </fieldset>
+
+        <fieldset class="module aligned">
+          <h2>7 KDP Backend Keywords</h2>
+          {% for i in "1234567" %}
+          <div class="form-row">
+            <label>Keyword {{ i }}</label>
+            {{ form|getattribute:"kdp_keyword_"|add:i }}
+          </div>
+          {% endfor %}
+          {# Manual render since template filter not available #}
+          <div class="form-row"><label>K1</label>{{ form.kdp_keyword_1 }}{{ form.kdp_keyword_1.errors }}</div>
+          <div class="form-row"><label>K2</label>{{ form.kdp_keyword_2 }}{{ form.kdp_keyword_2.errors }}</div>
+          <div class="form-row"><label>K3</label>{{ form.kdp_keyword_3 }}{{ form.kdp_keyword_3.errors }}</div>
+          <div class="form-row"><label>K4</label>{{ form.kdp_keyword_4 }}{{ form.kdp_keyword_4.errors }}</div>
+          <div class="form-row"><label>K5</label>{{ form.kdp_keyword_5 }}{{ form.kdp_keyword_5.errors }}</div>
+          <div class="form-row"><label>K6</label>{{ form.kdp_keyword_6 }}{{ form.kdp_keyword_6.errors }}</div>
+          <div class="form-row"><label>K7</label>{{ form.kdp_keyword_7 }}{{ form.kdp_keyword_7.errors }}</div>
+        </fieldset>
+
+        <fieldset class="module aligned">
+          <h2>KDP Categories</h2>
+          <div class="form-row">
+            <label>Category 1 *</label>
+            {{ form.kdp_category_1 }}
+            <p class="help">{{ form.kdp_category_1.help_text }}</p>
+            {{ form.kdp_category_1.errors }}
+          </div>
+          <div class="form-row">
+            <label>Category 2</label>
+            {{ form.kdp_category_2 }}
+            {{ form.kdp_category_2.errors }}
+          </div>
+        </fieldset>
+
+        {% if form.non_field_errors %}
+          <div class="errornote">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <div class="submit-row">
+          <input type="submit" value="ðŸ’¾ Save" class="default">
+          {% if can_approve %}
+            <button type="submit" name="action" value="approve"
+              onclick="return confirm('Are you sure you want to APPROVE and advance the lifecycle?')"
+              style="background:#417690; color:#fff; padding:8px 16px; margin-left:8px; border:none; cursor:pointer;">
+              âœ… Approve Keywords &amp; Advance Lifecycle
+            </button>
+          {% else %}
+            <span style="color:#999; margin-left:12px;">
+              (Book must be in keyword_research state to approve)
+            </span>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+
+    {# --- Right: Competitor Analysis + Primary Keywords --- #}
+    <div>
+      <h2>ðŸ† Competitor ASINs</h2>
+      {% if competitor_asins %}
+        <table class="responsive-table" style="width:100%">
+          <thead><tr><th>ASIN</th><th>BSR</th><th>Reviews</th><th>Price</th></tr></thead>
+          <tbody>
+            {% for comp in competitor_asins %}
+            <tr>
+              <td><a href="https://amazon.com/dp/{{ comp.asin }}" target="_blank">{{ comp.asin }}</a></td>
+              <td>{{ comp.bsr|default:'â€”' }}</td>
+              <td>{{ comp.reviews|default:'â€”' }}</td>
+              <td>${{ comp.price|default:'â€”' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p style="color:#999;">No competitor data yet. Run keyword research task to populate.</p>
+      {% endif %}
+
+      <h2 style="margin-top:24px;">ðŸ”‘ Primary Keywords</h2>
+      {% if primary_keywords %}
+        <ul>
+          {% for kw in primary_keywords %}
+            <li>{{ kw.keyword }} â€” Volume: {{ kw.search_volume|default:'?' }}</li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p style="color:#999;">No keyword data yet.</p>
+      {% endif %}
+
+      <h2 style="margin-top:24px;">âš¡ Run Analysis</h2>
+      <p>
+        <a href="{% url 'admin:novels_book_change' book.pk %}" class="button">
+          â† Back to Book
+        </a>
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

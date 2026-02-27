@@ -1,0 +1,167 @@
+﻿{% extends "admin/base_site.html" %}
+
+{% block title %}Ads Dashboard â€” {{ book.title }}{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  <div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Home</a> &rsaquo;
+    <a href="{% url 'admin:novels_book_changelist' %}">Books</a> &rsaquo;
+    <a href="{% url 'admin:novels_book_change' book.pk %}">{{ book.title }}</a> &rsaquo;
+    Ads Dashboard
+  </div>
+
+  <h1>ðŸ“£ Ads Dashboard â€” <em>{{ book.title }}</em></h1>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="messagelist"><p class="{{ msg.tags }}">{{ msg }}</p></div>
+    {% endfor %}
+  {% endif %}
+
+  {# KPI Summary Cards #}
+  <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:16px; margin-bottom:24px;">
+    <div style="background:#fff; border:1px solid #ddd; border-radius:8px; padding:16px; text-align:center;">
+      <div style="font-size:28px; font-weight:bold; color:#417690;">{{ totals.impressions|default:0 }}</div>
+      <div style="color:#666; font-size:13px;">Impressions (30d)</div>
+    </div>
+    <div style="background:#fff; border:1px solid #ddd; border-radius:8px; padding:16px; text-align:center;">
+      <div style="font-size:28px; font-weight:bold; color:#417690;">{{ totals.clicks|default:0 }}</div>
+      <div style="color:#666; font-size:13px;">Clicks (30d)</div>
+    </div>
+    <div style="background:#fff; border:1px solid #ddd; border-radius:8px; padding:16px; text-align:center;">
+      <div style="font-size:28px; font-weight:bold; color:#e74c3c;">${{ totals.spend|floatformat:2 }}</div>
+      <div style="color:#666; font-size:13px;">Spend (30d)</div>
+    </div>
+    <div style="background:#fff; border:1px solid #ddd; border-radius:8px; padding:16px; text-align:center;">
+      <div style="font-size:28px; font-weight:bold;
+        color:{% if totals.acos and totals.acos > 50 %}#dc3545{% elif totals.acos and totals.acos < 30 %}#28a745{% else %}#f39c12{% endif %};">
+        {% if totals.acos %}{{ totals.acos }}%{% else %}â€”{% endif %}
+      </div>
+      <div style="color:#666; font-size:13px;">ACoS (30d)</div>
+    </div>
+  </div>
+
+  {# Charts #}
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px; margin-bottom:24px;">
+    <div style="background:#fff; border:1px solid #ddd; border-radius:8px; padding:16px;">
+      <h3>Spend vs Sales (30 Days)</h3>
+      <canvas id="spendSalesChart" height="120"></canvas>
+    </div>
+    <div style="background:#fff; border:1px solid #ddd; border-radius:8px; padding:16px;">
+      <h3>ACoS Trend (30 Days)</h3>
+      <canvas id="acosChart" height="120"></canvas>
+    </div>
+  </div>
+
+  <script>
+  const labels = {{ chart_labels|safe }};
+  const spend = {{ chart_spend|safe }};
+  const sales = {{ chart_sales|safe }};
+  const acos = {{ chart_acos|safe }};
+
+  new Chart(document.getElementById('spendSalesChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Spend ($)', data: spend, borderColor: '#e74c3c', fill: false, tension: 0.3 },
+        { label: 'Sales ($)', data: sales, borderColor: '#28a745', fill: false, tension: 0.3 },
+      ]
+    },
+    options: { plugins: { legend: { position: 'bottom' } } }
+  });
+
+  new Chart(document.getElementById('acosChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'ACoS (%)', data: acos, borderColor: '#f39c12', fill: true,
+          backgroundColor: 'rgba(243,156,18,0.1)', tension: 0.3 },
+      ]
+    },
+    options: {
+      plugins: { legend: { position: 'bottom' } },
+      scales: { y: { suggestedMin: 0, suggestedMax: 100 } }
+    }
+  });
+  </script>
+
+  {# Recent Performance Table #}
+  <div style="background:#fff; border:1px solid #ddd; border-radius:8px; padding:16px; margin-bottom:24px;">
+    <h3 style="margin-top:0;">Daily Performance Log</h3>
+    {% if perf_data %}
+    <table class="responsive-table" style="width:100%;">
+      <thead>
+        <tr>
+          <th>Date</th><th>Impressions</th><th>Clicks</th>
+          <th>Spend</th><th>Sales</th><th>ACoS</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in perf_data %}
+        <tr>
+          <td>{{ p.report_date }}</td>
+          <td>{{ p.impressions }}</td>
+          <td>{{ p.clicks }}</td>
+          <td>${{ p.spend_usd }}</td>
+          <td>${{ p.sales_usd }}</td>
+          <td>
+            {% if p.spend_usd and p.sales_usd %}
+              {% widthratio p.spend_usd p.sales_usd 100 %}%
+            {% else %}â€”{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p style="color:#999;">No ads performance data yet. Run <code>sync_ads_performance</code> task to populate.</p>
+    {% endif %}
+  </div>
+
+  {# Optimization Panel #}
+  <div style="background:#fff; border:1px solid #ddd; border-radius:8px; padding:16px;">
+    <h3 style="margin-top:0;">âš™ï¸ Auto-Optimization Settings</h3>
+    <form method="post">
+      {% csrf_token %}
+      <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:16px;">
+        <div>
+          <label>{{ form.target_acos.label }}</label>
+          {{ form.target_acos }}
+          {{ form.target_acos.errors }}
+        </div>
+        <div>
+          <label>{{ form.daily_budget.label }}</label>
+          {{ form.daily_budget }}
+          {{ form.daily_budget.errors }}
+        </div>
+        <div>
+          <label>{{ form.pause_threshold_acos.label }}</label>
+          {{ form.pause_threshold_acos }}
+          {{ form.pause_threshold_acos.errors }}
+        </div>
+        <div>
+          <label>{{ form.scale_threshold_acos.label }}</label>
+          {{ form.scale_threshold_acos }}
+          {{ form.scale_threshold_acos.errors }}
+        </div>
+      </div>
+      <div style="margin-top:16px;">
+        <button type="submit"
+          style="background:#417690; color:#fff; padding:8px 16px; border:none; cursor:pointer; border-radius:3px;">
+          âš¡ Run Optimization Now
+        </button>
+      </div>
+    </form>
+  </div>
+
+</div>
+{% endblock %}
+

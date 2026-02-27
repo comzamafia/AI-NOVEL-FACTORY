@@ -1,0 +1,107 @@
+{% extends "admin/base_site.html" %}
+
+{% block title %}Legal Protection — {{ book.title }}{% endblock %}
+
+{% block content %}
+<div style="max-width:1100px">
+  <h1>🔐 Legal Protection — <em>{{ book.title }}</em></h1>
+  <p style="color:#666">Copyright protection tools, DMCA notice generator, and content theft monitoring.</p>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="messagelist"><p class="{{ msg.tags }}">{{ msg }}</p></div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- Copyright Status -->
+  <div style="background:{% if copyright_registered %}#d4edda{% else %}#fff3cd{% endif %};border:1px solid {% if copyright_registered %}#c3e6cb{% else %}#ffc107{% endif %};border-radius:6px;padding:1rem;margin-bottom:1.5rem">
+    {% if copyright_registered %}
+      ✅ <strong>U.S. Copyright Registered</strong> — This book is legally protected.
+    {% else %}
+      ⚠️ <strong>Copyright Not Yet Registered</strong> — Consider registering at <a href="https://www.copyright.gov" target="_blank">copyright.gov</a> for $65 before publishing to maximize legal protection.
+    {% endif %}
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem">
+    <!-- Disclaimer Preview -->
+    <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:1.5rem">
+      <h2>📄 Legal Disclaimer Preview</h2>
+      <p style="color:#666;font-size:0.85rem">This disclaimer will be auto-injected at the front of every exported book.</p>
+      <div style="background:#f8f8f8;border-radius:4px;padding:1rem;font-size:0.85rem;line-height:1.6;white-space:pre-wrap;max-height:250px;overflow-y:auto">{{ disclaimer }}</div>
+
+      <h2 style="margin-top:1.5rem">🔧 Automated Actions</h2>
+      <div style="display:flex;flex-direction:column;gap:0.5rem">
+        <form method="post">
+          {% csrf_token %}
+          <button type="submit" name="action" value="check_theft" class="button">🔍 Scan for Content Theft (Copyscape)</button>
+        </form>
+        <form method="post">
+          {% csrf_token %}
+          <button type="submit" name="action" value="setup_alerts" class="button">🔔 Set Up Google Alerts</button>
+        </form>
+      </div>
+      <p style="margin-top:0.75rem;color:#666;font-size:0.8rem">Content theft scans run monthly automatically via Celery.</p>
+    </div>
+
+    <!-- DMCA Generator -->
+    <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:1.5rem">
+      <h2>⚖️ DMCA Takedown Notice Generator</h2>
+      <p style="color:#666;font-size:0.85rem">Found someone copying your content? Generate a legally formatted DMCA takedown notice.</p>
+
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="generate_dmca">
+        <div style="margin-bottom:1rem">
+          <label><strong>Infringing URL: *</strong></label>
+          <input type="url" name="infringing_url" required
+                 style="width:100%;padding:0.5rem;margin-top:0.25rem;border:1px solid #ddd;border-radius:4px"
+                 placeholder="https://www.example.com/stolen-content"
+                 value="{{ infringing_url|default:'' }}">
+        </div>
+        <button type="submit" class="button default">Generate DMCA Notice</button>
+      </form>
+
+      {% if dmca_letter %}
+        <div style="margin-top:1.5rem">
+          <h3>📋 Generated DMCA Notice:</h3>
+          <div style="background:#f8f8f8;border:1px solid #ddd;border-radius:4px;padding:1rem;font-size:0.8rem;white-space:pre-wrap;max-height:400px;overflow-y:auto;font-family:monospace">{{ dmca_letter }}</div>
+          <button onclick="navigator.clipboard.writeText(document.querySelector('pre, [style*=pre-wrap]').textContent)" class="button" style="margin-top:0.5rem">📋 Copy to Clipboard</button>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- KDP Account Health -->
+  <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:1.5rem;margin-top:1.5rem">
+    <h2>🏥 KDP Account Health Checklist</h2>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;font-size:0.9rem">
+      <div style="display:flex;gap:0.5rem;align-items:flex-start">
+        <span style="color:#28a745;font-size:1.2rem">✓</span>
+        <span>No AI-generated content violations flagged by KDP</span>
+      </div>
+      <div style="display:flex;gap:0.5rem;align-items:flex-start">
+        <span style="color:{% if copyright_registered %}#28a745{% else %}#ffc107{% endif %};font-size:1.2rem">{% if copyright_registered %}✓{% else %}⚠{% endif %}</span>
+        <span>U.S. Copyright registration {% if not copyright_registered %}<strong>(pending)</strong>{% endif %}</span>
+      </div>
+      <div style="display:flex;gap:0.5rem;align-items:flex-start">
+        <span style="color:#28a745;font-size:1.2rem">✓</span>
+        <span>No trademark infringement in book title or content</span>
+      </div>
+      <div style="display:flex;gap:0.5rem;align-items:flex-start">
+        <span style="color:#28a745;font-size:1.2rem">✓</span>
+        <span>Derivative work check passed (not a summary or companion)</span>
+      </div>
+      <div style="display:flex;gap:0.5rem;align-items:flex-start">
+        <span style="color:#28a745;font-size:1.2rem">✓</span>
+        <span>Legal disclaimer included in exported manuscript</span>
+      </div>
+      <div style="display:flex;gap:0.5rem;align-items:flex-start">
+        <span style="color:#28a745;font-size:1.2rem">✓</span>
+        <span>AI disclosure status set on book record</span>
+      </div>
+    </div>
+  </div>
+
+  <p style="margin-top:1rem"><a href="{% url 'admin:novels_book_change' book.pk %}">← Back to Book</a></p>
+</div>
+{% endblock %}

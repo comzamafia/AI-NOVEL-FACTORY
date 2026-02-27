@@ -1,0 +1,77 @@
+﻿{% extends "admin/base_site.html" %}
+
+{% block title %}Concept Selection â€” {{ book.title }}{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  <div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Home</a> &rsaquo;
+    <a href="{% url 'admin:novels_book_changelist' %}">Books</a> &rsaquo;
+    <a href="{% url 'admin:novels_book_change' book.pk %}">{{ book.title }}</a> &rsaquo;
+    Concept Selection
+  </div>
+
+  <h1>ðŸ’¡ Concept Selection â€” <em>{{ book.title }}</em></h1>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="messagelist"><p class="{{ msg.tags }}">{{ msg }}</p></div>
+    {% endfor %}
+  {% endif %}
+
+  {% if not concepts %}
+    <div class="help" style="padding:16px; background:#fff3cd; border:1px solid #ffc107; border-radius:4px;">
+      <strong>No concepts generated yet.</strong>
+      Use the Celery task <code>generate_book_concepts</code> to ask AI to generate 3 concept options.
+    </div>
+  {% else %}
+    {# Show concept cards #}
+    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:16px; margin:24px 0;">
+      {% for concept in concepts %}
+      <div style="border:2px solid #ddd; border-radius:8px; padding:16px; background:#fff;">
+        <h3 style="margin-top:0;">Concept {{ forloop.counter }}</h3>
+        <p><strong>Title:</strong> {{ concept.title }}</p>
+        <p><strong>Hook:</strong> {{ concept.hook }}</p>
+        <p><strong>Core Twist:</strong> {{ concept.core_twist }}</p>
+        {% if concept.comparable_titles %}
+          <p><small>Comparables: {{ concept.comparable_titles|join:", " }}</small></p>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      <fieldset class="module aligned">
+        <h2>Select a Concept</h2>
+        {{ form.selected_concept }}
+        {{ form.selected_concept.errors }}
+
+        <h2 style="margin-top:16px;">Override (optional)</h2>
+        <div class="form-row">
+          <label>Override Title</label>
+          {{ form.custom_title }}
+        </div>
+        <div class="form-row">
+          <label>Override Hook</label>
+          {{ form.custom_hook }}
+        </div>
+        <div class="form-row">
+          <label>Notes</label>
+          {{ form.notes }}
+        </div>
+      </fieldset>
+
+      <div class="submit-row">
+        <button type="submit"
+          onclick="return confirm('Approve this concept? This will start keyword research automatically.')"
+          style="background:#417690; color:#fff; padding:10px 20px; border:none; font-size:14px; cursor:pointer;">
+          âœ… Approve Concept &amp; Start Keyword Research
+        </button>
+        <a href="{% url 'admin:novels_book_change' book.pk %}" class="button" style="margin-left:8px;">Cancel</a>
+      </div>
+    </form>
+  {% endif %}
+</div>
+{% endblock %}
+

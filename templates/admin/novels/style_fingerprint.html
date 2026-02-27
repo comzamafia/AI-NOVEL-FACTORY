@@ -1,0 +1,119 @@
+{% extends "admin/base_site.html" %}
+
+{% block title %}Style Fingerprint — {{ pen_name.name }}{% endblock %}
+
+{% block content %}
+<div style="max-width:1100px">
+  <h1>✍️ Style Fingerprint — <em>{{ pen_name.name }}</em></h1>
+  <p style="color:#666">Writing style metrics extracted from approved chapters. Used to keep AI-generated content consistent with the pen name's voice.</p>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="messagelist"><p class="{{ msg.tags }}">{{ msg }}</p></div>
+    {% endfor %}
+  {% endif %}
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem">
+    <!-- Metrics -->
+    <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:1.5rem">
+      <h2>📊 Style Metrics</h2>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem">
+        <div style="text-align:center;padding:1rem;background:#f0f8ff;border-radius:6px">
+          <div style="font-size:1.8rem;font-weight:bold;color:#007bff">{{ metrics.avg_sentence_length|default:"—" }}</div>
+          <div style="font-size:0.8rem;color:#666;margin-top:4px">Avg Sentence Length (words)</div>
+        </div>
+        <div style="text-align:center;padding:1rem;background:#f0f8ff;border-radius:6px">
+          <div style="font-size:1.8rem;font-weight:bold;color:#007bff">{{ metrics.avg_paragraph_length|default:"—" }}</div>
+          <div style="font-size:0.8rem;color:#666;margin-top:4px">Avg Paragraph Length (sentences)</div>
+        </div>
+        <div style="text-align:center;padding:1rem;background:#f0f8ff;border-radius:6px">
+          <div style="font-size:1.8rem;font-weight:bold;color:#28a745">{{ metrics.dialogue_ratio|default:"0" }}%</div>
+          <div style="font-size:0.8rem;color:#666;margin-top:4px">Dialogue Ratio</div>
+        </div>
+        <div style="text-align:center;padding:1rem;background:#f0f8ff;border-radius:6px">
+          <div style="font-size:1.8rem;font-weight:bold;color:#ffc107">{{ metrics.adverb_frequency|default:"0" }}%</div>
+          <div style="font-size:0.8rem;color:#666;margin-top:4px">Adverb Frequency</div>
+        </div>
+        <div style="text-align:center;padding:1rem;background:{% if metrics.passive_voice_ratio > 20 %}#fff3cd{% else %}#f0f8ff{% endif %};border-radius:6px;grid-column:span 2">
+          <div style="font-size:1.8rem;font-weight:bold;color:{% if metrics.passive_voice_ratio > 20 %}#ffc107{% else %}#17a2b8{% endif %}">{{ metrics.passive_voice_ratio|default:"0" }}%</div>
+          <div style="font-size:0.8rem;color:#666;margin-top:4px">Passive Voice Ratio {% if metrics.passive_voice_ratio > 20 %}⚠️ High{% endif %}</div>
+        </div>
+      </div>
+
+      <h3>Radar Chart</h3>
+      <canvas id="radarChart" height="200"></canvas>
+
+      <div style="margin-top:1rem">
+        <a href="#" onclick="document.getElementById('recalcForm').submit()" class="button">🔄 Recalculate from Approved Chapters</a>
+        <form id="recalcForm" method="post" style="display:none">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="recalculate">
+        </form>
+        <small style="color:#666;display:block;margin-top:0.5rem">Last recalculated: {{ fingerprint.last_recalculated|default:"Never" }}</small>
+      </div>
+    </div>
+
+    <!-- Style Prompt Editor -->
+    <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:1.5rem">
+      <h2>🎯 AI Style Prompt</h2>
+      <p style="color:#666;font-size:0.85rem">This prompt is injected into every AI writing call for this pen name to maintain voice consistency.</p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save">
+        <div style="margin-bottom:1rem">
+          <label><strong>Style System Prompt:</strong></label>
+          <textarea name="style_system_prompt" rows="10" style="width:100%;padding:0.5rem;margin-top:0.5rem;font-family:monospace;font-size:0.85rem;border:1px solid #ddd;border-radius:4px">{{ fingerprint.style_system_prompt }}</textarea>
+        </div>
+        <div style="margin-bottom:1rem">
+          <label><strong>Forbidden Words (comma-separated):</strong></label>
+          <input type="text" name="forbidden_words" value="{{ forbidden_words_str }}" style="width:100%;padding:0.5rem;margin-top:0.25rem;border:1px solid #ddd;border-radius:4px" placeholder="utilize, very, suddenly, ...">
+        </div>
+
+        {% if fingerprint.common_word_patterns %}
+          <div style="margin-bottom:1rem">
+            <label><strong>Common Word Patterns:</strong></label>
+            <div style="background:#f8f8f8;padding:0.75rem;border-radius:4px;font-size:0.85rem;max-height:100px;overflow-y:auto">
+              {% for pattern in fingerprint.common_word_patterns %}
+                <span style="background:#e8f4fd;border-radius:4px;padding:2px 6px;margin:2px;display:inline-block">{{ pattern }}</span>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        <button type="submit" class="button default">💾 Save Style Fingerprint</button>
+      </form>
+    </div>
+  </div>
+
+  <p style="margin-top:1rem"><a href="{% url 'admin:novels_penname_change' pen_name.pk %}">← Back to Pen Name</a></p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const met = {{ metrics_json|safe }};
+new Chart(document.getElementById('radarChart'), {
+  type: 'radar',
+  data: {
+    labels: ['Sentence Length', 'Para Length', 'Dialogue %', 'Adverb %', 'Passive Voice %'],
+    datasets: [{
+      label: '{{ pen_name.name }}',
+      data: [
+        Math.min(met.avg_sentence_length || 0, 30),
+        Math.min(met.avg_paragraph_length || 0, 10),
+        met.dialogue_ratio || 0,
+        met.adverb_frequency || 0,
+        met.passive_voice_ratio || 0,
+      ],
+      backgroundColor: 'rgba(0,123,255,0.2)',
+      borderColor: '#007bff',
+      pointBackgroundColor: '#007bff',
+    }]
+  },
+  options: {
+    responsive: true,
+    scales: { r: { beginAtZero: true, max: 100 } }
+  }
+});
+</script>
+{% endblock %}

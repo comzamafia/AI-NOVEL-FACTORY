@@ -1,0 +1,164 @@
+version: '3.9'
+
+# ─────────────────────────────────────────────
+# AI Novel Factory — Docker Compose
+# Services: Django API, Celery Worker, Celery Beat,
+#           Redis, PostgreSQL, Next.js Frontend
+# ─────────────────────────────────────────────
+
+services:
+
+  # ── PostgreSQL Database ──────────────────────
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ai_novel_factory}
+      POSTGRES_USER: ${POSTGRES_USER:-novel_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_in_production}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-novel_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis Broker + Cache ─────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Django API (Gunicorn) ────────────────────
+  django:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${DJANGO_PORT:-8000}:8000"
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-change-me-in-production}
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-False}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,django}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-novel_user}:${POSTGRES_PASSWORD:-changeme_in_production}@db:5432/${POSTGRES_DB:-ai_novel_factory}
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      CORS_ALLOWED_ORIGINS: http://localhost:3000,http://frontend:3000
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - media_files:/app/media
+      - static_files:/app/staticfiles
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             gunicorn config.wsgi:application
+             --bind 0.0.0.0:8000
+             --workers 4
+             --timeout 120
+             --access-logfile -
+             --error-logfile -"
+
+  # ── Celery Worker ────────────────────────────
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-change-me-in-production}
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-False}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-novel_user}:${POSTGRES_PASSWORD:-changeme_in_production}@db:5432/${POSTGRES_DB:-ai_novel_factory}
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      SENTRY_DSN: ${SENTRY_DSN:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - media_files:/app/media
+      - backup_files:/app/backups
+    command: >
+      celery -A config worker
+      --loglevel=info
+      --concurrency=4
+      --queues=default,high_priority,ai_generation
+
+  # ── Celery Beat (Scheduler) ──────────────────
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-change-me-in-production}
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-False}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-novel_user}:${POSTGRES_PASSWORD:-changeme_in_production}@db:5432/${POSTGRES_DB:-ai_novel_factory}
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      celery -A config beat
+      --loglevel=info
+      --scheduler django_celery_beat.schedulers:DatabaseScheduler
+
+  # ── Next.js Frontend ─────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api}
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api}
+    depends_on:
+      - django
+
+  # ── Flower — Celery Task Monitor ─────────────
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${FLOWER_PORT:-5555}:5555"
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      FLOWER_BASIC_AUTH: ${FLOWER_USER:-admin}:${FLOWER_PASSWORD:-changeme_flower}
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: >
+      celery -A config flower
+      --port=5555
+      --basic_auth=${FLOWER_USER:-admin}:${FLOWER_PASSWORD:-changeme_flower}
+      --url_prefix=flower
+
+volumes:
+  postgres_data:
+  redis_data:
+  media_files:
+  static_files:
+  backup_files:

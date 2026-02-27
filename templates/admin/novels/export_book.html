@@ -1,0 +1,97 @@
+﻿{% extends "admin/base_site.html" %}
+
+{% block title %}Export Book â€” {{ book.title }}{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  <div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Home</a> &rsaquo;
+    <a href="{% url 'admin:novels_book_changelist' %}">Books</a> &rsaquo;
+    <a href="{% url 'admin:novels_book_change' book.pk %}">{{ book.title }}</a> &rsaquo;
+    Export
+  </div>
+
+  <h1>ðŸ“¦ Export Book â€” <em>{{ book.title }}</em></h1>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="messagelist"><p class="{{ msg.tags }}">{{ msg }}</p></div>
+    {% endfor %}
+  {% endif %}
+
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px;">
+
+    {# Export Summary #}
+    <div style="background:#fff; border:1px solid #ddd; border-radius:8px; padding:24px;">
+      <h2 style="margin-top:0;">ðŸ“Š Export Summary</h2>
+      <table>
+        <tr><td><strong>Title:</strong></td><td>{{ book.title }}</td></tr>
+        <tr><td><strong>Author:</strong></td><td>{{ book.pen_name.name }}</td></tr>
+        <tr><td><strong>Approved Chapters:</strong></td><td>{{ chapters_count }}</td></tr>
+        <tr><td><strong>Lifecycle Status:</strong></td><td>{{ book.get_lifecycle_status_display }}</td></tr>
+        <tr><td><strong>KDP Pre-Flight:</strong></td>
+          <td>{% if book.kdp_preflight_passed %}âœ… Passed{% else %}âŒ Not completed{% endif %}</td>
+        </tr>
+      </table>
+
+      {% if not book.kdp_preflight_passed %}
+        <div style="background:#fff3cd; border:1px solid #ffc107; border-radius:4px; padding:12px; margin-top:16px;">
+          âš ï¸ KDP Pre-Flight checklist not completed.
+          <a href="{% url 'kdp_preflight' book.pk %}">Complete it first â†’</a>
+        </div>
+      {% endif %}
+    </div>
+
+    {# Export Form #}
+    <div style="background:#fff; border:1px solid #ddd; border-radius:8px; padding:24px;">
+      <h2 style="margin-top:0;">â¬‡ï¸ Generate Files</h2>
+      <form method="post">
+        {% csrf_token %}
+        <div style="margin-bottom:16px;">
+          <label><strong>Export Format:</strong></label><br>
+          <label><input type="radio" name="export_format" value="docx" checked> <strong>DOCX only</strong> (for KDP upload)</label><br>
+          <label><input type="radio" name="export_format" value="epub"> <strong>EPUB only</strong> (for wide distribution)</label><br>
+          <label><input type="radio" name="export_format" value="both"> <strong>Both DOCX + EPUB</strong></label>
+        </div>
+
+        <div style="background:#e8f4fc; border-radius:4px; padding:12px; margin-bottom:16px; font-size:13px;">
+          <strong>What gets auto-injected:</strong>
+          <ul style="margin:8px 0 0 0; padding-left:20px;">
+            <li>Title & Author from KDP metadata</li>
+            <li>Legal disclaimer page</li>
+            <li>Copyright notice with current year</li>
+            <li>Document properties (keywords, description)</li>
+          </ul>
+        </div>
+
+        <button type="submit"
+          {% if not book.kdp_preflight_passed %}disabled{% endif %}
+          style="background:{% if book.kdp_preflight_passed %}#417690{% else %}#ccc{% endif %};
+                 color:#fff; padding:12px 24px; border:none; font-size:15px;
+                 cursor:{% if book.kdp_preflight_passed %}pointer{% else %}not-allowed{% endif %};
+                 width:100%; border-radius:4px;">
+          ðŸ“¦ Generate &amp; Export Files
+        </button>
+      </form>
+    </div>
+  </div>
+
+  {# Metadata Preview #}
+  <div style="background:#fff; border:1px solid #ddd; border-radius:8px; padding:24px; margin-top:24px;">
+    <h2 style="margin-top:0;">ðŸ·ï¸ Metadata That Will Be Injected</h2>
+    {% if book.keyword_research %}
+      <table>
+        <tr><th>Title</th><td>{{ book.keyword_research.suggested_title }}</td></tr>
+        <tr><th>Subtitle</th><td>{{ book.keyword_research.suggested_subtitle|default:"â€”" }}</td></tr>
+        <tr><th>KDP Keywords</th><td>{{ book.keyword_research.kdp_backend_keywords|join:", " }}</td></tr>
+        <tr><th>Category 1</th><td>{{ book.keyword_research.kdp_category_1|default:"â€”" }}</td></tr>
+        <tr><th>Category 2</th><td>{{ book.keyword_research.kdp_category_2|default:"â€”" }}</td></tr>
+      </table>
+    {% else %}
+      <p style="color:#999;">No keyword metadata found. Complete keyword research first.</p>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+

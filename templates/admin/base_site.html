@@ -1,0 +1,41 @@
+{% extends "admin/base.html" %}
+{% load i18n %}
+
+{% block branding %}
+<h1 id="site-name"><a href="{% url 'admin:index' %}">📚 AI Novel Factory Admin</a></h1>
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+#ai-quicknav { background:#264b6b;padding:5px 16px;display:flex;gap:10px;align-items:center;font-size:0.8rem;flex-wrap:wrap;border-bottom:2px solid #1a3247; }
+#ai-quicknav a { color:#fff;text-decoration:none;padding:3px 8px;border-radius:4px;background:rgba(255,255,255,0.15); }
+#ai-quicknav a:hover { background:rgba(255,255,255,0.3); }
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var nav = document.createElement('div');
+  nav.id = 'ai-quicknav';
+  nav.innerHTML = [
+    '<a href="/admin/novels/kpi-dashboard/">📊 KPI Dashboard</a>',
+    '<a href="/admin/novels/competitor-intelligence/">🕵️ Competitors</a>',
+    '<a href="/admin/novels/arc-readers/">👥 ARC Readers</a>',
+    '<a href="/admin/novels/book/">📚 Books</a>',
+    '<a href="/admin/novels/penname/">✍️ Pen Names</a>',
+  ].join('');
+  var header = document.getElementById('header');
+  if (header) header.parentNode.insertBefore(nav, header.nextSibling);
+});
+</script>
+{% endblock %}
+
+
+{% block nav-global %}
+<div style="background:#264b6b;padding:6px 16px;display:flex;gap:12px;align-items:center;font-size:0.82rem;flex-wrap:wrap">
+  <a href="{% url 'kpi_dashboard' %}" style="color:#fff;text-decoration:none;padding:3px 8px;border-radius:4px;background:rgba(255,255,255,0.15)">📊 KPI Dashboard</a>
+  <a href="{% url 'competitor_intelligence' %}" style="color:#fff;text-decoration:none;padding:3px 8px;border-radius:4px;background:rgba(255,255,255,0.15)">🕵️ Competitors</a>
+  <a href="{% url 'arc_reader_list' %}" style="color:#fff;text-decoration:none;padding:3px 8px;border-radius:4px;background:rgba(255,255,255,0.15)">👥 ARC Readers</a>
+  <a href="{% url 'admin:novels_book_changelist' %}" style="color:#fff;text-decoration:none;padding:3px 8px;border-radius:4px;background:rgba(255,255,255,0.15)">📚 Books</a>
+  <a href="{% url 'admin:novels_penname_changelist' %}" style="color:#fff;text-decoration:none;padding:3px 8px;border-radius:4px;background:rgba(255,255,255,0.15)">✍️ Pen Names</a>
+</div>
+{% endblock %}

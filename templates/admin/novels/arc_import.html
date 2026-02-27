@@ -1,0 +1,41 @@
+{% extends "admin/base_site.html" %}
+
+{% block title %}Import ARC Readers{% endblock %}
+
+{% block content %}
+<div style="max-width:700px">
+  <h1>📤 Import ARC Readers from CSV</h1>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="messagelist"><p class="{{ msg.tags }}">{{ msg }}</p></div>
+    {% endfor %}
+  {% endif %}
+
+  <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:2rem">
+    <h3>CSV Format (required columns):</h3>
+    <pre style="background:#f8f8f8;padding:1rem;border-radius:4px;font-size:0.85rem">email,name,genres
+reader@example.com,John Smith,"thriller,mystery"
+another@reader.com,Jane Doe,"romance,suspense"</pre>
+
+    <form method="post" enctype="multipart/form-data" style="margin-top:1.5rem">
+      {% csrf_token %}
+      <div style="margin-bottom:1rem">
+        <label><strong>Select CSV File:</strong></label><br>
+        <input type="file" name="csv_file" accept=".csv" required style="margin-top:0.5rem">
+      </div>
+      <button type="submit" class="button default">Import Readers</button>
+      <a href="{% url 'arc_reader_list' %}" class="button" style="margin-left:0.5rem">Cancel</a>
+    </form>
+  </div>
+
+  <div style="background:#e8f4fd;border:1px solid #bee5eb;border-radius:6px;padding:1rem;margin-top:1rem">
+    <strong>ℹ️ Notes:</strong>
+    <ul style="margin:0.5rem 0 0 1rem">
+      <li>Updating an existing email will only change name and genres (won't reset statistics)</li>
+      <li>Genres should be comma-separated within quotes: "thriller,romance"</li>
+      <li>All new readers start as <em>reliable</em> by default</li>
+    </ul>
+  </div>
+</div>
+{% endblock %}

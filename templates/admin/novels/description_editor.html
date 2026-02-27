@@ -1,0 +1,131 @@
+﻿{% extends "admin/base_site.html" %}
+
+{% block title %}Description Editor â€” {{ book.title }}{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<script>
+function countChars(id, counterId) {
+  const val = document.getElementById(id).value;
+  document.getElementById(counterId).textContent = val.length;
+  const limit = {{ amazon_max }};
+  document.getElementById(counterId).style.color = val.length > limit ? 'red' : '#666';
+}
+function updatePreview(srcId, previewId) {
+  const html = document.getElementById(srcId).value;
+  document.getElementById(previewId).innerHTML = html;
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  <div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Home</a> &rsaquo;
+    <a href="{% url 'admin:novels_book_changelist' %}">Books</a> &rsaquo;
+    <a href="{% url 'admin:novels_book_change' book.pk %}">{{ book.title }}</a> &rsaquo;
+    Description Editor
+  </div>
+
+  <h1>ðŸ“ Description Editor â€” <em>{{ book.title }}</em></h1>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="messagelist"><p class="{{ msg.tags }}">{{ msg }}</p></div>
+    {% endfor %}
+  {% endif %}
+
+  <form method="post" id="desc-form">
+    {% csrf_token %}
+    <input type="hidden" name="form_action" id="form_action" value="save">
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
+
+      {# Version A Editor #}
+      <div>
+        <h2>Version A
+          <span style="font-size:0.7em; font-weight:normal;">
+            (<span id="count_a">0</span>/{{ amazon_max }} chars)
+          </span>
+        </h2>
+        <div class="form-row">
+          {{ form.hook_line }}
+          <p class="help">Hook Line</p>
+        </div>
+        <textarea id="desc_a" name="description_html_a" rows="18"
+          style="width:100%; font-family:monospace; font-size:12px;"
+          oninput="countChars('desc_a','count_a'); updatePreview('desc_a','preview_a')"
+          >{% if form.description_html_a.value %}{{ form.description_html_a.value }}{% endif %}</textarea>
+        {{ form.description_html_a.errors }}
+      </div>
+
+      {# Version A Preview #}
+      <div>
+        <h2>Preview â€” Version A <small style="color:#999;">(Amazon style)</small></h2>
+        <div id="preview_a"
+          style="border:1px solid #ddd; border-radius:4px; padding:16px; min-height:200px;
+                 font-family:Georgia,serif; line-height:1.7; background:#fff; overflow-y:auto;">
+          {% if desc_a %}{{ desc_a.description_html|safe }}{% else %}<em style="color:#999;">Type in the editor to previewâ€¦</em>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <hr style="margin:24px 0;">
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
+      {# Version B Editor #}
+      <div>
+        <h2>Version B
+          <span style="font-size:0.7em; font-weight:normal;">
+            (<span id="count_b">0</span>/{{ amazon_max }} chars)
+          </span>
+        </h2>
+        <textarea id="desc_b" name="description_html_b" rows="18"
+          style="width:100%; font-family:monospace; font-size:12px;"
+          oninput="countChars('desc_b','count_b'); updatePreview('desc_b','preview_b')"
+          >{% if form.description_html_b.value %}{{ form.description_html_b.value }}{% endif %}</textarea>
+        {{ form.description_html_b.errors }}
+      </div>
+
+      <div>
+        <h2>Preview â€” Version B</h2>
+        <div id="preview_b"
+          style="border:1px solid #ddd; border-radius:4px; padding:16px; min-height:200px;
+                 font-family:Georgia,serif; line-height:1.7; background:#fff; overflow-y:auto;">
+          {% if desc_b %}{{ desc_b.description_html|safe }}{% else %}<em style="color:#999;">Type in the editor to previewâ€¦</em>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <fieldset class="module aligned" style="margin-top:24px;">
+      <h2>Active Version</h2>
+      <div class="form-row">
+        {{ form.active_version }}
+        {{ form.active_version.errors }}
+      </div>
+    </fieldset>
+
+    {% if form.non_field_errors %}
+      <div class="errornote">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="submit-row">
+      <input type="submit" value="ðŸ’¾ Save" class="default"
+        onclick="document.getElementById('form_action').value='save'">
+      <button type="submit"
+        onclick="document.getElementById('form_action').value='approve'; return confirm('Approve and lock active description?')"
+        style="background:#417690; color:#fff; padding:8px 16px; margin-left:8px; border:none; cursor:pointer;">
+        âœ… Approve &amp; Set Active
+      </button>
+      <a href="{% url 'admin:novels_book_change' book.pk %}" style="margin-left:8px;" class="button">â† Back</a>
+    </div>
+  </form>
+
+  <script>
+    // Initialize counters on load
+    countChars('desc_a', 'count_a');
+    countChars('desc_b', 'count_b');
+  </script>
+</div>
+{% endblock %}
+

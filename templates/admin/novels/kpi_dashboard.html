@@ -1,0 +1,119 @@
+{% extends "admin/base_site.html" %}
+
+{% block title %}KPI Dashboard{% endblock %}
+
+{% block content %}
+<div style="max-width:1200px">
+  <h1>📊 KPI Dashboard — AI Novel Factory</h1>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="messagelist"><p class="{{ msg.tags }}">{{ msg }}</p></div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- ALERTS -->
+  {% if alerts %}
+    <div style="margin-bottom:1.5rem">
+      <h2>🚨 Active Alerts</h2>
+      {% for alert in alerts %}
+        <div style="background:{% if alert.level == 'CRITICAL' %}#f8d7da{% elif alert.level == 'URGENT' %}#fff3cd{% else %}#d4edda{% endif %};border:1px solid {% if alert.level == 'CRITICAL' %}#f5c6cb{% elif alert.level == 'URGENT' %}#ffc107{% else %}#c3e6cb{% endif %};border-radius:6px;padding:0.75rem 1rem;margin-bottom:0.5rem;display:flex;align-items:center;gap:0.75rem">
+          <span style="font-weight:bold;background:{% if alert.level == 'CRITICAL' %}#dc3545{% elif alert.level == 'URGENT' %}#ffc107{% else %}#28a745{% endif %};color:{% if alert.level == 'URGENT' %}#000{% else %}#fff{% endif %};padding:2px 8px;border-radius:4px;font-size:0.75rem">{{ alert.level }}</span>
+          {{ alert.message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div style="background:#d4edda;border:1px solid #c3e6cb;border-radius:6px;padding:0.75rem 1rem;margin-bottom:1.5rem">
+      ✅ All systems nominal — no active alerts.
+    </div>
+  {% endif %}
+
+  <!-- PRODUCTION KPIs -->
+  <h2>🏭 Production KPIs</h2>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem">
+    <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:1rem;text-align:center">
+      <div style="font-size:2rem;font-weight:bold;color:#007bff">{{ total_books }}</div>
+      <div style="color:#666;font-size:0.85rem">Total Books</div>
+    </div>
+    <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:1rem;text-align:center">
+      <div style="font-size:2rem;font-weight:bold;color:#ffc107">{{ books_in_progress }}</div>
+      <div style="color:#666;font-size:0.85rem">In Production</div>
+    </div>
+    <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:1rem;text-align:center">
+      <div style="font-size:2rem;font-weight:bold;color:#28a745">{{ books_published }}</div>
+      <div style="color:#666;font-size:0.85rem">Published</div>
+    </div>
+    <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:1rem;text-align:center">
+      <div style="font-size:2rem;font-weight:bold;color:#17a2b8">{{ chapter_completion_rate }}%</div>
+      <div style="color:#666;font-size:0.85rem">Chapter Completion</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem">
+    <div style="background:{% if avg_ai_detection > 30 %}#f8d7da{% elif avg_ai_detection > 20 %}#fff3cd{% else %}#d4edda{% endif %};border-radius:6px;padding:1rem;text-align:center">
+      <div style="font-size:1.8rem;font-weight:bold">{{ avg_ai_detection }}%</div>
+      <div style="font-size:0.85rem;color:#666">Avg AI Detection Score<br><small>Target: &lt;20%</small></div>
+    </div>
+    <div style="background:{% if avg_plagiarism > 5 %}#f8d7da{% elif avg_plagiarism > 3 %}#fff3cd{% else %}#d4edda{% endif %};border-radius:6px;padding:1rem;text-align:center">
+      <div style="font-size:1.8rem;font-weight:bold">{{ avg_plagiarism }}%</div>
+      <div style="font-size:0.85rem;color:#666">Avg Plagiarism Score<br><small>Target: &lt;3%</small></div>
+    </div>
+    <div style="background:#f8f8f8;border-radius:6px;padding:1rem;text-align:center">
+      <div style="font-size:1.8rem;font-weight:bold">{{ approved_chapters }}/{{ total_chapters }}</div>
+      <div style="font-size:0.85rem;color:#666">Approved Chapters<br><small>Total across all books</small></div>
+    </div>
+  </div>
+
+  <!-- REVENUE KPIs -->
+  <h2>💰 Sales & Revenue KPIs</h2>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem">
+    <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:1rem;text-align:center">
+      <div style="font-size:1.8rem;font-weight:bold;color:#28a745">${{ total_revenue|floatformat:2 }}</div>
+      <div style="color:#666;font-size:0.85rem">Total Revenue (All Platforms)</div>
+    </div>
+    <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:1rem;text-align:center">
+      <div style="font-size:1.8rem;font-weight:bold;color:#007bff">{{ total_units }}</div>
+      <div style="color:#666;font-size:0.85rem">Total Units Sold</div>
+    </div>
+    <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:1rem;text-align:center">
+      <div style="font-size:1.8rem;font-weight:bold;color:#17a2b8">{{ total_reviews }}</div>
+      <div style="color:#666;font-size:0.85rem">Total Amazon Reviews</div>
+    </div>
+    <div style="background:{% if avg_rating < 3.5 %}#f8d7da{% elif avg_rating >= 4 %}#d4edda{% else %}#fff3cd{% endif %};border-radius:6px;padding:1rem;text-align:center">
+      <div style="font-size:1.8rem;font-weight:bold">{{ avg_rating }}★</div>
+      <div style="font-size:0.85rem;color:#666">Avg Overall Rating</div>
+    </div>
+  </div>
+
+  <!-- ADS KPIs -->
+  <h2>📣 Marketing KPIs (Last 30 Days)</h2>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem">
+    <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:1rem;text-align:center">
+      <div style="font-size:1.8rem;font-weight:bold;color:#dc3545">${{ total_spend_30d }}</div>
+      <div style="color:#666;font-size:0.85rem">Ad Spend (30d)</div>
+    </div>
+    <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:1rem;text-align:center">
+      <div style="font-size:1.8rem;font-weight:bold;color:#28a745">${{ total_ad_sales_30d }}</div>
+      <div style="color:#666;font-size:0.85rem">Ad-Attributed Sales (30d)</div>
+    </div>
+    <div style="background:{% if overall_acos and overall_acos > 50 %}#f8d7da{% elif overall_acos and overall_acos > 30 %}#fff3cd{% else %}#d4edda{% endif %};border-radius:6px;padding:1rem;text-align:center">
+      <div style="font-size:1.8rem;font-weight:bold">{% if overall_acos %}{{ overall_acos }}%{% else %}—{% endif %}</div>
+      <div style="font-size:0.85rem;color:#666">Overall ACOS<br><small>Target: &lt;30%</small></div>
+    </div>
+    <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:1rem;text-align:center">
+      <div style="font-size:1.8rem;font-weight:bold;color:#007bff">{% if roas %}{{ roas }}x{% else %}—{% endif %}</div>
+      <div style="color:#666;font-size:0.85rem">ROAS</div>
+    </div>
+  </div>
+
+  <!-- Quick Links -->
+  <h2>🔗 Quick Actions</h2>
+  <div style="display:flex;gap:0.75rem;flex-wrap:wrap">
+    <a href="{% url 'admin:novels_book_changelist' %}" class="button">📚 All Books</a>
+    <a href="{% url 'competitor_intelligence' %}" class="button">🕵️ Competitors</a>
+    <a href="{% url 'arc_reader_list' %}" class="button">👥 ARC Readers</a>
+    <a href="{% url 'admin:novels_arcreader_changelist' %}" class="button">✉️ Manage Readers</a>
+  </div>
+</div>
+{% endblock %}

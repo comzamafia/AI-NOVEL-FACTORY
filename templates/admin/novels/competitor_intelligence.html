@@ -1,0 +1,123 @@
+{% extends "admin/base_site.html" %}
+
+{% block title %}Competitor Intelligence Dashboard{% endblock %}
+
+{% block content %}
+<div style="max-width:1200px">
+  <h1>🕵️ Competitor Intelligence Dashboard</h1>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="messagelist"><p class="{{ msg.tags }}">{{ msg }}</p></div>
+    {% endfor %}
+  {% endif %}
+
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem">
+    <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:1rem;text-align:center">
+      <div style="font-size:2rem;font-weight:bold;color:#007bff">{{ total }}</div>
+      <div style="color:#666">Tracked Competitors</div>
+    </div>
+    <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:1rem;text-align:center">
+      <div style="font-size:2rem;font-weight:bold;color:#28a745">${{ avg_price }}</div>
+      <div style="color:#666">Avg Price</div>
+    </div>
+    <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:1rem;text-align:center">
+      <div style="font-size:2rem;font-weight:bold;color:#ffc107">{{ avg_reviews|floatformat:0 }}</div>
+      <div style="color:#666">Avg Reviews</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:1.5rem">
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+        <h2>Competitor Books (sorted by BSR)</h2>
+        <form method="post" style="display:inline">
+          {% csrf_token %}
+          <button type="submit" name="action" value="update" class="button">🔄 Update All</button>
+        </form>
+      </div>
+
+      <table style="width:100%;border-collapse:collapse;background:#fff;border-radius:6px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);font-size:0.85rem">
+        <thead style="background:#f8f8f8">
+          <tr>
+            <th style="padding:8px;text-align:left">Title</th>
+            <th style="padding:8px;text-align:left">Author</th>
+            <th style="padding:8px;text-align:left">ASIN</th>
+            <th style="padding:8px;text-align:center">BSR</th>
+            <th style="padding:8px;text-align:center">Reviews</th>
+            <th style="padding:8px;text-align:center">Rating</th>
+            <th style="padding:8px;text-align:right">Price</th>
+            <th style="padding:8px;text-align:right">Est. Revenue/mo</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for comp in competitors %}
+          <tr style="border-top:1px solid #eee;{% if forloop.counter <= 3 %}background:#fffbf0{% endif %}">
+            <td style="padding:8px"><strong>{{ comp.title|truncatechars:40 }}</strong></td>
+            <td style="padding:8px">{{ comp.author|truncatechars:20 }}</td>
+            <td style="padding:8px;font-family:monospace;font-size:0.75rem">{{ comp.asin }}</td>
+            <td style="padding:8px;text-align:center">{{ comp.bsr|default:"—" }}</td>
+            <td style="padding:8px;text-align:center">{{ comp.review_count }}</td>
+            <td style="padding:8px;text-align:center">{{ comp.avg_rating }}★</td>
+            <td style="padding:8px;text-align:right">${{ comp.price_usd }}</td>
+            <td style="padding:8px;text-align:right">
+              {% if comp.estimated_monthly_revenue %}${{ comp.estimated_monthly_revenue|floatformat:0 }}{% else %}—{% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="8" style="padding:2rem;text-align:center;color:#999">No competitors tracked yet. Add below.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- Add Competitor Form -->
+      <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:1.5rem;margin-top:1.5rem">
+        <h3>➕ Add Competitor</h3>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="add">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem">
+            <div><label>ASIN *</label><input type="text" name="asin" required style="width:100%;padding:0.4rem" placeholder="B0XXXXXXXXX"></div>
+            <div><label>Title *</label><input type="text" name="title" required style="width:100%;padding:0.4rem"></div>
+            <div><label>Author</label><input type="text" name="author" style="width:100%;padding:0.4rem"></div>
+            <div><label>Genre</label><input type="text" name="genre" style="width:100%;padding:0.4rem" placeholder="Thriller"></div>
+            <div><label>Price ($)</label><input type="number" name="price_usd" step="0.01" value="3.99" style="width:100%;padding:0.4rem"></div>
+            <div><label>BSR</label><input type="number" name="bsr" style="width:100%;padding:0.4rem" placeholder="10000"></div>
+            <div><label>Review Count</label><input type="number" name="review_count" value="0" style="width:100%;padding:0.4rem"></div>
+            <div><label>Avg Rating</label><input type="number" name="avg_rating" step="0.1" min="0" max="5" value="4.2" style="width:100%;padding:0.4rem"></div>
+          </div>
+          <button type="submit" class="button default" style="margin-top:0.75rem">Add Competitor</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Price Distribution Chart -->
+    <div>
+      <h2>Price Distribution</h2>
+      <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:1rem;margin-bottom:1rem">
+        <canvas id="priceChart" height="200"></canvas>
+      </div>
+      <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:1rem">
+        <strong>💡 Market Insights</strong>
+        <p style="margin:0.5rem 0 0;font-size:0.85rem">
+          Average competitor price: <strong>${{ avg_price }}</strong><br>
+          Average reviews: <strong>{{ avg_reviews|floatformat:0 }}</strong><br>
+          <em>Launch at $0.99 to undercut competitors and build velocity.</em>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+new Chart(document.getElementById('priceChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ price_labels|safe }},
+    datasets: [{ label: 'Books', data: {{ price_buckets|safe }}, backgroundColor: '#007bff' }]
+  },
+  options: { responsive: true, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+});
+</script>
+{% endblock %}

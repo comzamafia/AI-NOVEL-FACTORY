@@ -1,0 +1,128 @@
+{% extends "admin/base_site.html" %}
+
+{% block title %}Distribution Tracker — {{ book.title }}{% endblock %}
+
+{% block content %}
+<div style="max-width:1100px">
+  <h1>🌐 Distribution Tracker — <em>{{ book.title }}</em></h1>
+  <p>Total Revenue Across All Platforms: <strong style="font-size:1.3rem;color:#28a745">${{ total_revenue|floatformat:2 }}</strong></p>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="messagelist"><p class="{{ msg.tags }}">{{ msg }}</p></div>
+    {% endfor %}
+  {% endif %}
+
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:1.5rem;margin-top:1.5rem">
+    <!-- Channels Table -->
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+        <h2>Distribution Channels</h2>
+        <form method="post" style="display:inline">
+          {% csrf_token %}
+          <button type="submit" name="action" value="sync" class="button">🔄 Sync Revenue</button>
+        </form>
+      </div>
+
+      <table style="width:100%;border-collapse:collapse;background:#fff;border-radius:6px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08)">
+        <thead style="background:#f8f8f8">
+          <tr>
+            <th style="padding:10px;text-align:left">Platform</th>
+            <th style="padding:10px;text-align:left">ID/ASIN</th>
+            <th style="padding:10px;text-align:right">Units</th>
+            <th style="padding:10px;text-align:right">Revenue</th>
+            <th style="padding:10px;text-align:center">Royalty</th>
+            <th style="padding:10px;text-align:center">Status</th>
+            <th style="padding:10px;text-align:center">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for ch in channels %}
+          <tr style="border-top:1px solid #eee">
+            <td style="padding:10px"><strong>{{ ch.get_platform_display }}</strong></td>
+            <td style="padding:10px;font-size:0.85rem">{{ ch.asin_or_id|default:"—" }}</td>
+            <td style="padding:10px;text-align:right">{{ ch.units_sold }}</td>
+            <td style="padding:10px;text-align:right">${{ ch.revenue_usd|floatformat:2 }}</td>
+            <td style="padding:10px;text-align:center">{{ ch.royalty_rate|floatformat:0 }}%</td>
+            <td style="padding:10px;text-align:center">
+              {% if ch.is_active %}<span style="color:#28a745">● Live</span>{% else %}<span style="color:#999">○ Inactive</span>{% endif %}
+            </td>
+            <td style="padding:10px;text-align:center">
+              <form method="post" style="display:inline">
+                {% csrf_token %}
+                <input type="hidden" name="channel_id" value="{{ ch.pk }}">
+                <button type="submit" name="action" value="toggle" class="button" style="font-size:0.8rem;padding:2px 8px">
+                  {% if ch.is_active %}Deactivate{% else %}Activate{% endif %}
+                </button>
+              </form>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7" style="padding:2rem;text-align:center;color:#999">No distribution channels added yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- Add Channel Form -->
+      <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:1.5rem;margin-top:1.5rem">
+        <h3>➕ Add Distribution Channel</h3>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="add_channel">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+            <div>
+              <label>Platform</label>
+              <select name="platform" style="width:100%;padding:0.4rem">
+                {% for val, label in platform_choices %}
+                  <option value="{{ val }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label>ASIN / Platform ID</label>
+              <input type="text" name="asin_or_id" style="width:100%;padding:0.4rem" placeholder="B0XXXXXXXXX">
+            </div>
+            <div>
+              <label>Published URL</label>
+              <input type="url" name="published_url" style="width:100%;padding:0.4rem" placeholder="https://...">
+            </div>
+            <div>
+              <label>Royalty Rate (%)</label>
+              <input type="number" name="royalty_rate" value="70" min="0" max="100" style="width:100%;padding:0.4rem">
+            </div>
+          </div>
+          <button type="submit" class="button default" style="margin-top:0.75rem">Add Channel</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Revenue Chart -->
+    <div>
+      <h2>Revenue by Platform</h2>
+      <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:1rem">
+        {% if channels %}
+          <canvas id="revChart" height="250"></canvas>
+        {% else %}
+          <p style="color:#999;text-align:center;padding:2rem">No data yet</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <p style="margin-top:1rem"><a href="{% url 'admin:novels_book_change' book.pk %}">← Back to Book</a></p>
+</div>
+
+{% if channels %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+new Chart(document.getElementById('revChart'), {
+  type: 'doughnut',
+  data: {
+    labels: {{ platform_labels|safe }},
+    datasets: [{ data: {{ platform_revenues|safe }}, backgroundColor: ['#007bff','#28a745','#ffc107','#dc3545','#17a2b8','#6f42c1','#fd7e14','#20c997','#6c757d'] }]
+  },
+  options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+});
+</script>
+{% endif %}
+{% endblock %}

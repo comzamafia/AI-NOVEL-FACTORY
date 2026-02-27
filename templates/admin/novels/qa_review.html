@@ -1,0 +1,179 @@
+﻿{% extends "admin/base_site.html" %}
+
+{% block title %}QA Review â€” {{ book.title }}{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  <div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Home</a> &rsaquo;
+    <a href="{% url 'admin:novels_book_changelist' %}">Books</a> &rsaquo;
+    <a href="{% url 'admin:novels_book_change' book.pk %}">{{ book.title }}</a> &rsaquo;
+    QA Review
+  </div>
+
+  <h1>ðŸ›¡ï¸ QA Review â€” <em>{{ book.title }}</em></h1>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="messagelist"><p class="{{ msg.tags }}">{{ msg }}</p></div>
+    {% endfor %}
+  {% endif %}
+
+  {# Progress Stats #}
+  <div style="background:#fff; border:1px solid #ddd; border-radius:8px; padding:20px; margin-bottom:24px;">
+    <div style="display:flex; gap:32px; align-items:center;">
+      <div>
+        <div style="font-size:32px; font-weight:bold; color:#417690;">{{ completion_pct }}%</div>
+        <div style="font-size:12px; color:#666;">Chapters Approved</div>
+      </div>
+      <div>
+        <div style="font-size:24px; font-weight:bold;">{{ approved_ch }} / {{ total_ch }}</div>
+        <div style="font-size:12px; color:#666;">Chapters</div>
+      </div>
+      <div style="flex:1;">
+        <div style="background:#e9ecef; border-radius:4px; height:16px; overflow:hidden;">
+          <div style="background:#417690; height:100%; width:{{ completion_pct }}%;"></div>
+        </div>
+      </div>
+      <div>
+        <a href="{% url 'kdp_preflight' book.pk %}" class="button"
+          style="background:{% if completion_pct == 100 %}#28a745{% else %}#ccc{% endif %};">
+          â†’ KDP Pre-Flight
+        </a>
+      </div>
+    </div>
+  </div>
+
+  {# 6-Point Originality Checklist #}
+  <fieldset class="module aligned" style="margin-bottom:24px;">
+    <h2>ðŸŽ¯ 6-Point Plot Originality Checklist (must pass â‰¥ 5/6)</h2>
+    <div style="padding:12px;">
+      {% for item in "123456" %}
+      <div style="margin:8px 0;">
+        <label><input type="checkbox"> &nbsp;
+          {% if forloop.counter == 1 %}Setting differs from comparable titles â‰¥ 3 elements
+          {% elif forloop.counter == 2 %}Protagonist has unique wound/backstory not in Top 50 bestsellers
+          {% elif forloop.counter == 3 %}Core mystery has original resolution method
+          {% elif forloop.counter == 4 %}Main twist differs from Top 20 bestsellers in this category
+          {% elif forloop.counter == 5 %}Character names pass Google + Amazon search (no conflicts)
+          {% else %}At least 1 subplot is an original idea not found in Top 100
+          {% endif %}
+        </label>
+      </div>
+      {% endfor %}
+    </div>
+  </fieldset>
+
+  {# Chapter QA Cards #}
+  <h2>ðŸ“š Key Chapters for Review</h2>
+
+  {% for chapter in first_ch|make_list %}{% endfor %}
+
+  {% if first_ch %}
+  <div style="border:2px solid #417690; border-radius:8px; padding:20px; margin-bottom:16px;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="margin:0;">Chapter 1 â€” Opening Hook</h3>
+      <span style="padding:4px 12px; border-radius:4px; background:
+        {% if first_ch.status == 'approved' %}#d4edda{% elif first_ch.status == 'rejected' %}#f8d7da{% else %}#fff3cd{% endif %};">
+        {{ first_ch.get_status_display }}
+      </span>
+    </div>
+    <p style="color:#666; font-size:12px;">{{ first_ch.word_count }} words</p>
+    <div style="max-height:300px; overflow-y:auto; background:#f8f9fa; padding:12px; border-radius:4px; font-family:Georgia,serif; line-height:1.7; white-space:pre-wrap;">{{ first_ch.content|truncatechars:2000 }}</div>
+
+    <form method="post" style="margin-top:12px;">
+      {% csrf_token %}
+      <input type="hidden" name="chapter_id" value="{{ first_ch.pk }}">
+      <div style="display:flex; gap:8px; align-items:flex-start;">
+        <div style="flex:1;">
+          <textarea name="feedback" rows="3" style="width:100%;" placeholder="Feedback (required if rejecting)..."></textarea>
+          <input type="hidden" name="originality_6_point_score" value="">
+        </div>
+        <div>
+          <button type="submit" name="decision" value="approve"
+            style="display:block; background:#28a745; color:#fff; padding:8px 16px; border:none; cursor:pointer; margin-bottom:4px;">
+            âœ… Approve
+          </button>
+          <button type="submit" name="decision" value="reject"
+            style="display:block; background:#dc3545; color:#fff; padding:8px 16px; border:none; cursor:pointer;">
+            âŒ Reject
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+
+  {% for ch in twist_chs %}
+  <details style="border:1px solid #ddd; border-radius:6px; margin-bottom:8px;">
+    <summary style="padding:12px; cursor:pointer; display:flex; justify-content:space-between;">
+      <strong>Chapter {{ ch.chapter_number }}</strong>
+      <span style="padding:2px 8px; border-radius:3px; background:
+        {% if ch.status == 'approved' %}#d4edda{% elif ch.status == 'rejected' %}#f8d7da{% else %}#fff3cd{% endif %}; font-size:12px;">
+        {{ ch.get_status_display }}
+      </span>
+    </summary>
+    <div style="padding:12px; background:#f8f9fa; font-family:Georgia,serif; line-height:1.7; max-height:250px; overflow-y:auto; white-space:pre-wrap;">
+      {{ ch.content|truncatechars:1000 }}
+    </div>
+    <form method="post" style="padding:12px;">
+      {% csrf_token %}
+      <input type="hidden" name="chapter_id" value="{{ ch.pk }}">
+      <textarea name="feedback" rows="2" style="width:100%;" placeholder="Feedback..."></textarea>
+      <div style="margin-top:8px;">
+        <button type="submit" name="decision" value="approve"
+          style="background:#28a745; color:#fff; padding:6px 12px; border:none; cursor:pointer; margin-right:4px;">
+          âœ… Approve
+        </button>
+        <button type="submit" name="decision" value="reject"
+          style="background:#dc3545; color:#fff; padding:6px 12px; border:none; cursor:pointer;">
+          âŒ Reject
+        </button>
+      </div>
+    </form>
+  </details>
+  {% endfor %}
+
+  {% if last_ch and last_ch != first_ch %}
+  <div style="border:2px solid #6c757d; border-radius:8px; padding:20px; margin-top:16px;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="margin:0;">Chapter {{ last_ch.chapter_number }} â€” Ending</h3>
+      <span style="padding:4px 12px; border-radius:4px; background:
+        {% if last_ch.status == 'approved' %}#d4edda{% elif last_ch.status == 'rejected' %}#f8d7da{% else %}#fff3cd{% endif %};">
+        {{ last_ch.get_status_display }}
+      </span>
+    </div>
+    <div style="max-height:250px; overflow-y:auto; background:#f8f9fa; padding:12px; border-radius:4px; font-family:Georgia,serif; line-height:1.7; white-space:pre-wrap;">
+      {{ last_ch.content|truncatechars:1500 }}
+    </div>
+    <form method="post" style="margin-top:12px;">
+      {% csrf_token %}
+      <input type="hidden" name="chapter_id" value="{{ last_ch.pk }}">
+      <textarea name="feedback" rows="2" style="width:100%;" placeholder="Feedback..."></textarea>
+      <div style="margin-top:8px;">
+        <button type="submit" name="decision" value="approve"
+          style="background:#28a745; color:#fff; padding:8px 16px; border:none; cursor:pointer; margin-right:4px;">
+          âœ… Approve Ending
+        </button>
+        <button type="submit" name="decision" value="reject"
+          style="background:#dc3545; color:#fff; padding:8px 16px; border:none; cursor:pointer;">
+          âŒ Reject &amp; Rewrite
+        </button>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+
+  <div style="margin-top:24px;">
+    <a href="{% url 'admin:novels_book_change' book.pk %}" class="button">â† Back to Book</a>
+    {% if completion_pct == 100 %}
+    <a href="{% url 'kdp_preflight' book.pk %}" class="button"
+      style="margin-left:8px; background:#417690; color:#fff;">
+      â†’ Proceed to KDP Pre-Flight
+    </a>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+
