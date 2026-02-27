@@ -227,6 +227,8 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
+    'http://localhost:3001',
+    'http://127.0.0.1:3001',
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -299,12 +301,21 @@ CELERY_BEAT_SCHEDULE = {
 
 REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': REDIS_URL,
-    }
-}
+# Use Redis if available, otherwise fall back to local memory cache (safe for dev)
+def _build_cache_config():
+    if os.getenv('USE_REDIS', 'auto').lower() == 'false':
+        return {'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}}
+    if os.getenv('USE_REDIS', 'auto').lower() == 'true':
+        return {'default': {'BACKEND': 'django.core.cache.backends.redis.RedisCache', 'LOCATION': REDIS_URL}}
+    # auto: probe Redis — if not reachable, fall back silently
+    try:
+        import redis as _redis
+        _redis.Redis.from_url(REDIS_URL, socket_connect_timeout=1).ping()
+        return {'default': {'BACKEND': 'django.core.cache.backends.redis.RedisCache', 'LOCATION': REDIS_URL}}
+    except Exception:
+        return {'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}}
+
+CACHES = _build_cache_config()
 
 
 # =============================================================================

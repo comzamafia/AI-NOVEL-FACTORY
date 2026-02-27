@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
 import { getBook, getChapterByNumber, getChapters } from '@/lib/api';
 import ChapterGate from '@/components/ChapterGate';
 import UpsellBanner from '@/components/UpsellBanner';
+import ReadingProgress from '@/components/ReadingProgress';
 
 export const revalidate = 60;
 
@@ -49,6 +50,7 @@ export default async function ChapterPage({ params, searchParams }: ChapterPageP
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
+      <ReadingProgress />
       {/* Breadcrumb */}
       <nav className="text-sm text-slate-500 mb-8 flex items-center gap-2 flex-wrap">
         <Link href="/" className="hover:text-slate-300">Home</Link>
@@ -75,7 +77,7 @@ export default async function ChapterPage({ params, searchParams }: ChapterPageP
 
       {/* Chapter content */}
       {isUnlocked && chapter.content ? (
-        <article className="prose prose-invert prose-slate max-w-none prose-lg text-slate-200 leading-relaxed prose-p:mb-5 prose-headings:text-white">
+        <article id="chapter-content" className="prose prose-invert prose-slate max-w-none prose-lg text-slate-200 leading-relaxed prose-p:mb-5 prose-headings:text-white">
           {chapter.content.split('\n\n').map((para, i) => (
             <p key={i}>{para}</p>
           ))}

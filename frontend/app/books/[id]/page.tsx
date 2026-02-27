@@ -73,7 +73,7 @@ export default async function BookPage({ params }: BookPageProps) {
               className="flex items-center gap-2 w-full justify-center bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-3 px-6 rounded-xl transition-colors"
             >
               <ExternalLink size={16} />
-              Buy on Amazon{book.current_price_usd ? ` $${book.current_price_usd.toFixed(2)}` : ''}
+              Buy on Amazon{book.current_price_usd ? ` $${parseFloat(String(book.current_price_usd)).toFixed(2)}` : ''}
             </a>
           )}
 

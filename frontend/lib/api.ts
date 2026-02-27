@@ -57,6 +57,23 @@ export async function getBooksByAuthor(penNameId: number | string, page = 1): Pr
 }
 
 // ----------------------------------------------------------------
+// Search
+// ----------------------------------------------------------------
+export async function searchBooks(q: string, page = 1): Promise<PaginatedResponse<Book>> {
+  const { data } = await apiClient.get<PaginatedResponse<Book>>('/books/', {
+    params: { search: q, page, ordering: '-created_at' },
+  });
+  return data;
+}
+
+export async function searchPenNames(q: string): Promise<PaginatedResponse<PenName>> {
+  const { data } = await apiClient.get<PaginatedResponse<PenName>>('/pen-names/', {
+    params: { search: q },
+  });
+  return data;
+}
+
+// ----------------------------------------------------------------
 // Chapters
 // ----------------------------------------------------------------
 export async function getChapters(params: {
