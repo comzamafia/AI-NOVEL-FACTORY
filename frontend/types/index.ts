@@ -83,7 +83,15 @@ export interface Chapter {
   is_free?: boolean;
 }
 
-export type ChapterStatus = 'pending' | 'ready_to_write' | 'written' | 'qa_review' | 'approved' | 'rejected';
+export type ChapterStatus =
+  | 'pending'
+  | 'ready_to_write'
+  | 'writing'
+  | 'written'
+  | 'pending_qa'
+  | 'approved'
+  | 'rejected'
+  | 'published';
 
 export interface Subscription {
   id: number;

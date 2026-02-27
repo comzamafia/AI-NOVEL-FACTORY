@@ -361,7 +361,7 @@ class BookViewSet(viewsets.ModelViewSet):
             total=Count('id'),
             approved=Count('id', filter=Q(status=ChapterStatus.APPROVED)),
             published=Count('id', filter=Q(is_published=True)),
-            in_review=Count('id', filter=Q(status=ChapterStatus.QA_REVIEW)),
+            in_review=Count('id', filter=Q(status=ChapterStatus.PENDING_QA)),
         )
 
         return Response({
