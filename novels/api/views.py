@@ -24,6 +24,9 @@ from novels.models import (
     ChapterStatus,
     BookCover,
     CoverType,
+    KeywordResearch,
+    ReviewTracker,
+    AdsPerformance,
 )
 from novels.utils.kdp_calculator import calc_ebook, calc_paperback, get_trim_size_choices, get_paper_type_choices
 from novels.tasks.keywords import run_keyword_research
@@ -40,6 +43,9 @@ from .serializers import (
     StoryBibleSerializer,
     BookCoverSerializer,
     BookCoverListSerializer,
+    KeywordResearchSerializer,
+    ReviewTrackerSerializer,
+    AdsPerformanceSerializer,
 )
 
 
@@ -370,6 +376,79 @@ class BookViewSet(viewsets.ModelViewSet):
             'recent_books': recent,
         })
 
+    @action(detail=False, methods=['get'])
+    def analytics_summary(self, request):
+        """
+        Aggregated analytics data for the analytics dashboard.
+        Returns per-book revenue, review, and ads summaries.
+        """
+        qs = Book.objects.filter(is_deleted=False).select_related('pen_name').prefetch_related(
+            'review_tracker', 'ads_performance'
+        ).order_by('-total_revenue_usd')
+
+        books_data = []
+        for b in qs:
+            # Review tracker
+            try:
+                rt = b.review_tracker
+                review_data = {
+                    'total_reviews': rt.total_reviews,
+                    'avg_rating': float(rt.avg_rating or 0),
+                    'arc_reviews_received': rt.arc_reviews_received,
+                }
+            except Exception:
+                review_data = {'total_reviews': 0, 'avg_rating': 0, 'arc_reviews_received': 0}
+
+            # Ads aggregation (last 30 days)
+            from django.utils import timezone
+            import datetime
+            thirty_ago = timezone.now().date() - datetime.timedelta(days=30)
+            ads_agg = b.ads_performance.filter(report_date__gte=thirty_ago).aggregate(
+                total_spend=Sum('spend_usd'),
+                total_sales=Sum('sales_usd'),
+                total_clicks=Sum('clicks'),
+                total_impressions=Sum('impressions'),
+                total_orders=Sum('orders'),
+            )
+
+            books_data.append({
+                'id': b.id,
+                'title': b.title,
+                'pen_name': b.pen_name.name if b.pen_name else '',
+                'lifecycle_status': b.lifecycle_status,
+                'asin': b.asin,
+                'bsr': b.bsr,
+                'total_revenue_usd': float(b.total_revenue_usd or 0),
+                'current_price_usd': float(b.current_price_usd or 0),
+                'reviews': review_data,
+                'ads_30d': {
+                    'spend': float(ads_agg['total_spend'] or 0),
+                    'sales': float(ads_agg['total_sales'] or 0),
+                    'clicks': ads_agg['total_clicks'] or 0,
+                    'impressions': ads_agg['total_impressions'] or 0,
+                    'orders': ads_agg['total_orders'] or 0,
+                    'acos': round(
+                        float(ads_agg['total_spend'] or 0) / float(ads_agg['total_sales'] or 1) * 100, 1
+                    ) if (ads_agg['total_sales'] or 0) > 0 else None,
+                },
+            })
+
+        # Totals
+        total_revenue = sum(b['total_revenue_usd'] for b in books_data)
+        total_ads_spend = sum(b['ads_30d']['spend'] for b in books_data)
+        total_ads_sales = sum(b['ads_30d']['sales'] for b in books_data)
+
+        return Response({
+            'books': books_data,
+            'totals': {
+                'revenue_usd': total_revenue,
+                'ads_spend_30d': total_ads_spend,
+                'ads_sales_30d': total_ads_sales,
+                'overall_acos': round(total_ads_spend / total_ads_sales * 100, 1) if total_ads_sales > 0 else None,
+                'total_books': len(books_data),
+            },
+        })
+
 
 class ChapterViewSet(viewsets.ModelViewSet):
     """
@@ -588,3 +667,104 @@ class BookCoverViewSet(viewsets.ModelViewSet):
             'paper_types':  get_paper_type_choices(),
             'cover_types':  [{'value': v, 'label': l} for v, l in [('ebook', 'eBook'), ('paperback', 'Paperback')]],
         })
+
+
+# =============================================================================
+# KEYWORD RESEARCH VIEWSET
+# =============================================================================
+
+class KeywordResearchViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for Keyword Research management.
+
+    Endpoints:
+      GET    /api/keyword-research/?book={id}  — get research for a book
+      PATCH  /api/keyword-research/{id}/       — update keywords manually
+      POST   /api/keyword-research/{id}/approve/      — approve the research
+      POST   /api/keyword-research/{id}/re_run/       — trigger new research run
+      GET    /api/keyword-research/{id}/validate/     — validate backend keywords
+    """
+    serializer_class = KeywordResearchSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['book', 'is_approved']
+    ordering_fields = ['book', 'created_at', 'last_research_at']
+    ordering = ['-created_at']
+
+    def get_queryset(self):
+        return KeywordResearch.objects.filter(is_deleted=False).select_related('book')
+
+    @action(detail=True, methods=['post'])
+    def approve(self, request, pk=None):
+        """Mark keyword research as approved."""
+        from django.utils import timezone
+        kw = self.get_object()
+        kw.is_approved = True
+        kw.approved_at = timezone.now()
+        kw.save(update_fields=['is_approved', 'approved_at', 'updated_at'])
+        return Response({
+            'status': 'success',
+            'is_approved': kw.is_approved,
+            'message': 'Keyword research approved',
+        })
+
+    @action(detail=True, methods=['post'])
+    def re_run(self, request, pk=None):
+        """Trigger a fresh keyword research run via Celery."""
+        kw = self.get_object()
+        from novels.tasks.keywords import run_keyword_research
+        run_keyword_research.delay(kw.book_id)
+        return Response({
+            'status': 'queued',
+            'message': 'Keyword research task queued',
+        })
+
+    @action(detail=True, methods=['get'])
+    def validate(self, request, pk=None):
+        """Validate KDP backend keywords and return any errors."""
+        kw = self.get_object()
+        errors = kw.validate_backend_keywords()
+        return Response({
+            'valid': len(errors) == 0,
+            'errors': errors,
+            'keyword_count': len(kw.kdp_backend_keywords),
+        })
+
+
+# =============================================================================
+# REVIEW TRACKER VIEWSET
+# =============================================================================
+
+class ReviewTrackerViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Read-only ViewSet for Review Tracker data.
+    """
+    serializer_class = ReviewTrackerSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['book']
+    ordering_fields = ['book', 'total_reviews', 'avg_rating', 'last_scraped']
+    ordering = ['-total_reviews']
+
+    def get_queryset(self):
+        return ReviewTracker.objects.filter(is_deleted=False).select_related('book')
+
+
+# =============================================================================
+# ADS PERFORMANCE VIEWSET
+# =============================================================================
+
+class AdsPerformanceViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Read-only ViewSet for Ads Performance daily records.
+    """
+    serializer_class = AdsPerformanceSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['book', 'report_date']
+    ordering_fields = ['report_date', 'spend_usd', 'sales_usd', 'acos']
+    ordering = ['-report_date']
+
+    def get_queryset(self):
+        return AdsPerformance.objects.filter(is_deleted=False).select_related('book')
+

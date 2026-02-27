@@ -12,6 +12,7 @@ from novels.models import (
     BookDescription,
     PricingStrategy,
     ReviewTracker,
+    AdsPerformance,
     DistributionChannel,
     BookCover,
 )
@@ -317,6 +318,64 @@ class BookCreateSerializer(serializers.ModelSerializer):
             'target_word_count',
             'is_ai_generated_disclosure',
         ]
+
+
+# =============================================================================
+# MARKETING / ANALYTICS SERIALIZERS
+# =============================================================================
+
+class ReviewTrackerSerializer(serializers.ModelSerializer):
+    """Serializer for ReviewTracker model."""
+
+    class Meta:
+        model = ReviewTracker
+        fields = [
+            'id',
+            'book',
+            'total_reviews',
+            'avg_rating',
+            'reviews_week_1',
+            'reviews_week_2',
+            'reviews_week_3',
+            'reviews_week_4',
+            'positive_themes',
+            'negative_themes',
+            'arc_emails_sent',
+            'arc_reviews_received',
+            'arc_conversion_rate',
+            'rating_distribution',
+            'last_scraped',
+            'scrape_error',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['arc_conversion_rate', 'last_scraped', 'created_at', 'updated_at']
+
+
+class AdsPerformanceSerializer(serializers.ModelSerializer):
+    """Serializer for AdsPerformance daily records."""
+
+    class Meta:
+        model = AdsPerformance
+        fields = [
+            'id',
+            'book',
+            'report_date',
+            'impressions',
+            'clicks',
+            'spend_usd',
+            'sales_usd',
+            'acos',
+            'ctr',
+            'cpc',
+            'orders',
+            'units_sold',
+            'top_keywords',
+            'keywords_to_pause',
+            'keywords_to_scale',
+            'created_at',
+        ]
+        read_only_fields = ['acos', 'ctr', 'cpc', 'created_at']
 
 
 # =============================================================================

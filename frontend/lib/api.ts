@@ -9,6 +9,9 @@ import type {
   CoverChoices,
   PipelineStats,
   PaginatedResponse,
+  KeywordResearch,
+  StoryBible,
+  AnalyticsSummary,
 } from '@/types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
@@ -295,6 +298,78 @@ export async function updatePenName(id: number | string, payload: Partial<PenNam
 
 export async function deletePenName(id: number | string): Promise<void> {
   await apiClient.delete(`/pen-names/${id}/`);
+}
+
+// ----------------------------------------------------------------
+// Keyword Research
+// ----------------------------------------------------------------
+export async function getKeywordResearch(bookId: number | string): Promise<KeywordResearch | null> {
+  try {
+    const { data } = await apiClient.get<PaginatedResponse<KeywordResearch>>('/keyword-research/', {
+      params: { book: bookId },
+    });
+    return data.results[0] || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function updateKeywordResearch(
+  id: number | string,
+  payload: Partial<KeywordResearch>
+): Promise<KeywordResearch> {
+  const { data } = await apiClient.patch<KeywordResearch>(`/keyword-research/${id}/`, payload);
+  return data;
+}
+
+export async function approveKeywordResearch(id: number | string): Promise<{ status: string; message: string }> {
+  const { data } = await apiClient.post(`/keyword-research/${id}/approve/`);
+  return data;
+}
+
+export async function rerunKeywordResearch(id: number | string): Promise<{ status: string; message: string }> {
+  const { data } = await apiClient.post(`/keyword-research/${id}/re_run/`);
+  return data;
+}
+
+export async function validateKeywords(id: number | string): Promise<{ valid: boolean; errors: string[]; keyword_count: number }> {
+  const { data } = await apiClient.get(`/keyword-research/${id}/validate/`);
+  return data;
+}
+
+// ----------------------------------------------------------------
+// Story Bible
+// ----------------------------------------------------------------
+export async function getStoryBible(bookId: number | string): Promise<StoryBible | null> {
+  try {
+    const { data } = await apiClient.get<PaginatedResponse<StoryBible>>('/story-bibles/', {
+      params: { book: bookId },
+    });
+    return data.results[0] || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function updateStoryBible(
+  id: number | string,
+  payload: Partial<StoryBible>
+): Promise<StoryBible> {
+  const { data } = await apiClient.patch<StoryBible>(`/story-bibles/${id}/`, payload);
+  return data;
+}
+
+export async function generateBibleSummary(id: number | string): Promise<{ summary: string; message: string }> {
+  const { data } = await apiClient.post(`/story-bibles/${id}/generate_summary/`);
+  return data;
+}
+
+// ----------------------------------------------------------------
+// Analytics
+// ----------------------------------------------------------------
+export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
+  const { data } = await apiClient.get<AnalyticsSummary>('/books/analytics_summary/');
+  return data;
 }
 
 // ----------------------------------------------------------------

@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ExternalLink, BookOpen, Lock, ChevronRight, ImageIcon, ListOrdered } from 'lucide-react';
+import { ExternalLink, BookOpen, Lock, ChevronRight, ImageIcon, ListOrdered, Key, BookOpenCheck } from 'lucide-react';
 import { getBook, getChapters, getActiveDescription, buildCoverUrl } from '@/lib/api';
 import StarRating from '@/components/StarRating';
 import UpsellBanner from '@/components/UpsellBanner';
@@ -102,6 +102,24 @@ export default async function BookPage({ params }: BookPageProps) {
           >
             <ListOrdered size={15} />
             Manage Chapters
+          </Link>
+
+          {/* Keywords link */}
+          <Link
+            href={`/books/${params.id}/keywords`}
+            className="flex items-center gap-2 w-full justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-sm font-medium py-2.5 px-4 rounded-xl border border-slate-700 transition-colors"
+          >
+            <Key size={15} />
+            Keyword Research
+          </Link>
+
+          {/* Bible link */}
+          <Link
+            href={`/books/${params.id}/bible`}
+            className="flex items-center gap-2 w-full justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-sm font-medium py-2.5 px-4 rounded-xl border border-slate-700 transition-colors"
+          >
+            <BookOpenCheck size={15} />
+            Story Bible
           </Link>
 
           {/* Stats */}

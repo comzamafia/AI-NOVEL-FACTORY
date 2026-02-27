@@ -221,6 +221,140 @@ export interface PipelineStats {
 }
 
 // ============================================================
+// KEYWORD RESEARCH
+// ============================================================
+export interface KeywordPrimary {
+  keyword: string;
+  volume?: number;
+  competition?: string;
+}
+
+export interface CompetitorAsin {
+  asin: string;
+  title?: string;
+  bsr?: number;
+  reviews?: number;
+  rating?: number;
+  price?: number;
+}
+
+export interface KeywordResearch {
+  id: number;
+  book: number;
+  primary_keywords: KeywordPrimary[];
+  kdp_backend_keywords: string[];
+  kdp_category_1: string;
+  kdp_category_2: string;
+  suggested_title: string;
+  suggested_subtitle: string;
+  competitor_asins: CompetitorAsin[];
+  avg_competitor_reviews: number;
+  keyword_search_volume: Record<string, number>;
+  is_approved: boolean;
+  approved_at: string | null;
+  last_research_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================================
+// STORY BIBLE
+// ============================================================
+export interface StoryBible {
+  id: number;
+  book: number;
+  characters: Record<string, unknown> | unknown[];
+  world_rules: Record<string, unknown> | unknown[];
+  timeline: Record<string, unknown> | unknown[];
+  four_act_outline: Record<string, unknown> | unknown[];
+  clues_tracker: Record<string, unknown> | unknown[];
+  themes: string;
+  tone: string;
+  pov: string;
+  tense: string;
+  summary_for_ai: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================================
+// REVIEW TRACKER
+// ============================================================
+export interface ReviewTracker {
+  id: number;
+  book: number;
+  total_reviews: number;
+  avg_rating: number;
+  reviews_week_1: number;
+  reviews_week_2: number;
+  reviews_week_3: number;
+  reviews_week_4: number;
+  positive_themes: string[];
+  negative_themes: string[];
+  arc_emails_sent: number;
+  arc_reviews_received: number;
+  arc_conversion_rate: number;
+  rating_distribution: Record<string, number>;
+  last_scraped: string | null;
+}
+
+// ============================================================
+// ADS PERFORMANCE
+// ============================================================
+export interface AdsPerformance {
+  id: number;
+  book: number;
+  report_date: string;
+  impressions: number;
+  clicks: number;
+  spend_usd: string | number;
+  sales_usd: string | number;
+  acos: number | null;
+  ctr: number | null;
+  cpc: string | number | null;
+  orders: number;
+  units_sold: number;
+}
+
+// ============================================================
+// ANALYTICS SUMMARY
+// ============================================================
+export interface AnalyticsBook {
+  id: number;
+  title: string;
+  pen_name: string;
+  lifecycle_status: string;
+  asin: string | null;
+  bsr: number | null;
+  total_revenue_usd: number;
+  current_price_usd: number;
+  reviews: {
+    total_reviews: number;
+    avg_rating: number;
+    arc_reviews_received: number;
+  };
+  ads_30d: {
+    spend: number;
+    sales: number;
+    clicks: number;
+    impressions: number;
+    orders: number;
+    acos: number | null;
+  };
+}
+
+export interface AnalyticsSummary {
+  books: AnalyticsBook[];
+  totals: {
+    revenue_usd: number;
+    ads_spend_30d: number;
+    ads_sales_30d: number;
+    overall_acos: number | null;
+    total_books: number;
+  };
+}
+
+// ============================================================
 // API PAGINATED RESPONSE
 // ============================================================
 export interface PaginatedResponse<T> {
