@@ -15,6 +15,9 @@ from novels.models import (
     AdsPerformance,
     DistributionChannel,
     BookCover,
+    CompetitorBook,
+    ARCReader,
+    StyleFingerprint,
 )
 
 
@@ -480,3 +483,206 @@ class BookCoverListSerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(obj.front_cover.url)
         return None
 
+
+# =============================================================================
+# PRICING STRATEGY SERIALIZER
+# =============================================================================
+
+class PricingStrategySerializer(serializers.ModelSerializer):
+    """Serializer for PricingStrategy model."""
+    current_phase_display = serializers.CharField(
+        source='get_current_phase_display', read_only=True
+    )
+    next_promotion_type_display = serializers.CharField(
+        source='get_next_promotion_type_display', read_only=True
+    )
+
+    class Meta:
+        model = PricingStrategy
+        fields = [
+            'id',
+            'book',
+            'current_phase',
+            'current_phase_display',
+            'current_price_usd',
+            'reviews_threshold_for_growth',
+            'days_in_launch_phase',
+            'is_kdp_select',
+            'kdp_select_enrollment_date',
+            'next_promotion_date',
+            'next_promotion_type',
+            'next_promotion_type_display',
+            'last_promotion_date',
+            'days_between_promotions',
+            'auto_price_enabled',
+            'price_history',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['created_at', 'updated_at']
+
+
+# =============================================================================
+# DISTRIBUTION CHANNEL SERIALIZER
+# =============================================================================
+
+class DistributionChannelSerializer(serializers.ModelSerializer):
+    """Serializer for DistributionChannel model."""
+    platform_display = serializers.CharField(
+        source='get_platform_display', read_only=True
+    )
+
+    class Meta:
+        model = DistributionChannel
+        fields = [
+            'id',
+            'book',
+            'platform',
+            'platform_display',
+            'asin_or_id',
+            'published_url',
+            'units_sold',
+            'pages_read',
+            'revenue_usd',
+            'royalty_rate',
+            'is_active',
+            'published_at',
+            'unpublished_at',
+            'last_synced_at',
+            'sync_error',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['last_synced_at', 'created_at', 'updated_at']
+
+
+# =============================================================================
+# COMPETITOR BOOK SERIALIZER
+# =============================================================================
+
+class CompetitorBookSerializer(serializers.ModelSerializer):
+    """Serializer for CompetitorBook model."""
+
+    class Meta:
+        model = CompetitorBook
+        fields = [
+            'id',
+            'asin',
+            'title',
+            'author',
+            'genre',
+            'subgenre',
+            'bsr',
+            'review_count',
+            'avg_rating',
+            'price_usd',
+            'cover_style',
+            'description_hooks',
+            'themes',
+            'estimated_monthly_units',
+            'estimated_monthly_revenue',
+            'last_updated',
+            'tracking_start_date',
+            'bsr_history',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['last_updated', 'estimated_monthly_units', 'estimated_monthly_revenue', 'created_at', 'updated_at']
+
+
+# =============================================================================
+# ARC READER SERIALIZER
+# =============================================================================
+
+class ARCReaderSerializer(serializers.ModelSerializer):
+    """Serializer for ARCReader model."""
+    reliability_rate = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ARCReader
+        fields = [
+            'id',
+            'name',
+            'email',
+            'genres_interested',
+            'reviews_left_count',
+            'arc_copies_received',
+            'avg_rating_given',
+            'is_reliable',
+            'unreliable_count',
+            'reliability_rate',
+            'last_email_sent',
+            'email_opt_out',
+            'notes',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['reliability_rate', 'created_at', 'updated_at']
+
+    def get_reliability_rate(self, obj):
+        if obj.arc_copies_received == 0:
+            return None
+        return round((obj.reviews_left_count / obj.arc_copies_received) * 100, 1)
+
+
+# =============================================================================
+# STYLE FINGERPRINT SERIALIZER
+# =============================================================================
+
+class StyleFingerprintSerializer(serializers.ModelSerializer):
+    """Serializer for StyleFingerprint model."""
+    pen_name_name = serializers.CharField(source='pen_name.name', read_only=True)
+
+    class Meta:
+        model = StyleFingerprint
+        fields = [
+            'id',
+            'pen_name',
+            'pen_name_name',
+            'avg_sentence_length',
+            'avg_paragraph_length',
+            'avg_chapter_length',
+            'dialogue_ratio',
+            'adverb_frequency',
+            'passive_voice_ratio',
+            'common_word_patterns',
+            'forbidden_words',
+            'style_system_prompt',
+            'chapters_analyzed',
+            'last_recalculated',
+            'needs_recalculation',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['pen_name_name', 'style_system_prompt', 'last_recalculated', 'created_at', 'updated_at']
+
+
+# =============================================================================
+# BOOK DESCRIPTION FULL SERIALIZER
+# =============================================================================
+
+class BookDescriptionFullSerializer(serializers.ModelSerializer):
+    """Full serializer for Book Description including all formula components."""
+
+    class Meta:
+        model = BookDescription
+        fields = [
+            'id',
+            'book',
+            'version',
+            'description_html',
+            'description_plain',
+            'hook_line',
+            'setup_paragraph',
+            'stakes_paragraph',
+            'twist_tease',
+            'call_to_action',
+            'comparable_authors',
+            'is_active',
+            'is_approved',
+            'approved_at',
+            'character_count',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['description_plain', 'character_count', 'approved_at', 'created_at', 'updated_at']

@@ -14,6 +14,7 @@ import {
   DollarSign,
   RefreshCw,
   ArrowLeft,
+  Fingerprint,
 } from 'lucide-react';
 import {
   getPenNames,
@@ -458,12 +459,20 @@ export default function PenNamesPage() {
 
                 {/* Actions */}
                 <div className="border-t border-slate-800 px-5 py-3 flex items-center justify-between">
-                  <Link
-                    href={`/authors/${pn.id}`}
-                    className="text-xs text-slate-400 hover:text-amber-400 transition-colors"
-                  >
-                    View storefront →
-                  </Link>
+                  <div className="flex items-center gap-3">
+                    <Link
+                      href={`/authors/${pn.id}`}
+                      className="text-xs text-slate-400 hover:text-amber-400 transition-colors"
+                    >
+                      View storefront →
+                    </Link>
+                    <Link
+                      href={`/pen-names/${pn.id}/style`}
+                      className="flex items-center gap-1 text-xs text-slate-500 hover:text-purple-400 transition-colors"
+                    >
+                      <Fingerprint size={11} /> Style
+                    </Link>
+                  </div>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setEditTarget(pn)}

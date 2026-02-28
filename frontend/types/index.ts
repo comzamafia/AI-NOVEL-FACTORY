@@ -380,3 +380,169 @@ export interface CreateCheckoutParams {
   successUrl: string;
   cancelUrl: string;
 }
+
+// ============================================================
+// PRICING STRATEGY
+// ============================================================
+export type PricingPhase = 'launch' | 'growth' | 'mature' | 'promo' | 'bundle';
+export type PromotionType = 'kindle_countdown' | 'free_promo' | 'price_drop';
+
+export interface PriceHistoryEntry {
+  date: string;
+  price: number;
+  phase: PricingPhase;
+  reason: string;
+}
+
+export interface PricingStrategy {
+  id: number;
+  book: number;
+  current_phase: PricingPhase;
+  current_phase_display: string;
+  current_price_usd: string | number;
+  reviews_threshold_for_growth: number;
+  days_in_launch_phase: number;
+  is_kdp_select: boolean;
+  kdp_select_enrollment_date: string | null;
+  next_promotion_date: string | null;
+  next_promotion_type: PromotionType | '';
+  next_promotion_type_display: string;
+  last_promotion_date: string | null;
+  days_between_promotions: number;
+  auto_price_enabled: boolean;
+  price_history: PriceHistoryEntry[];
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================================
+// DISTRIBUTION CHANNEL
+// ============================================================
+export type DistributionPlatform =
+  | 'kdp' | 'draft2digital' | 'acx' | 'publishdrive'
+  | 'website' | 'patreon' | 'apple_books' | 'kobo' | 'barnes_noble';
+
+export interface DistributionChannel {
+  id: number;
+  book: number;
+  platform: DistributionPlatform;
+  platform_display: string;
+  asin_or_id: string;
+  published_url: string;
+  units_sold: number;
+  pages_read: number;
+  revenue_usd: string | number;
+  royalty_rate: number;
+  is_active: boolean;
+  published_at: string | null;
+  unpublished_at: string | null;
+  last_synced_at: string | null;
+  sync_error: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================================
+// COMPETITOR BOOK
+// ============================================================
+export interface BsrHistoryEntry {
+  date: string;
+  bsr: number;
+}
+
+export interface CompetitorBook {
+  id: number;
+  asin: string;
+  title: string;
+  author: string;
+  genre: string;
+  subgenre: string;
+  bsr: number | null;
+  review_count: number;
+  avg_rating: number;
+  price_usd: string | number | null;
+  cover_style: string;
+  description_hooks: string[];
+  themes: string[];
+  estimated_monthly_units: number;
+  estimated_monthly_revenue: string | number;
+  last_updated: string;
+  tracking_start_date: string | null;
+  bsr_history: BsrHistoryEntry[];
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================================
+// ARC READER
+// ============================================================
+export interface ARCReader {
+  id: number;
+  name: string;
+  email: string;
+  genres_interested: string[];
+  reviews_left_count: number;
+  arc_copies_received: number;
+  avg_rating_given: number;
+  is_reliable: boolean;
+  unreliable_count: number;
+  reliability_rate: number | null;
+  last_email_sent: string | null;
+  email_opt_out: boolean;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================================
+// STYLE FINGERPRINT
+// ============================================================
+export interface CommonWordPatterns {
+  sentence_starters?: string[];
+  transitions?: string[];
+  descriptive_patterns?: string[];
+  [key: string]: string[] | undefined;
+}
+
+export interface StyleFingerprint {
+  id: number;
+  pen_name: number;
+  pen_name_name: string;
+  avg_sentence_length: number;
+  avg_paragraph_length: number;
+  avg_chapter_length: number;
+  dialogue_ratio: number;
+  adverb_frequency: number;
+  passive_voice_ratio: number;
+  common_word_patterns: CommonWordPatterns;
+  forbidden_words: string[];
+  style_system_prompt: string;
+  chapters_analyzed: number;
+  last_recalculated: string | null;
+  needs_recalculation: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================================
+// BOOK DESCRIPTION (FULL)
+// ============================================================
+export interface BookDescriptionFull {
+  id: number;
+  book: number;
+  version: 'A' | 'B';
+  description_html: string;
+  description_plain: string;
+  hook_line: string;
+  setup_paragraph: string;
+  stakes_paragraph: string;
+  twist_tease: string;
+  call_to_action: string;
+  comparable_authors: string[];
+  is_active: boolean;
+  is_approved: boolean;
+  approved_at: string | null;
+  character_count: number;
+  created_at: string;
+  updated_at: string;
+}

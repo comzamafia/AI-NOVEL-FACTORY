@@ -12,6 +12,14 @@ import type {
   KeywordResearch,
   StoryBible,
   AnalyticsSummary,
+  ReviewTracker,
+  AdsPerformance,
+  PricingStrategy,
+  DistributionChannel,
+  CompetitorBook,
+  ARCReader,
+  StyleFingerprint,
+  BookDescriptionFull,
 } from '@/types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
@@ -390,6 +398,112 @@ export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
 }
 
 // ----------------------------------------------------------------
+// Review Tracker
+// ----------------------------------------------------------------
+export async function getReviewTracker(bookId: number | string): Promise<ReviewTracker | null> {
+  try {
+    const { data } = await apiClient.get<PaginatedResponse<ReviewTracker>>('/review-trackers/', {
+      params: { book: bookId },
+    });
+    return data.results[0] || null;
+  } catch {
+    return null;
+  }
+}
+
+// ----------------------------------------------------------------
+// Ads Performance
+// ----------------------------------------------------------------
+export async function getAdsPerformanceHistory(bookId: number | string): Promise<AdsPerformance[]> {
+  try {
+    const { data } = await apiClient.get<PaginatedResponse<AdsPerformance>>('/ads-performance/', {
+      params: { book: bookId, ordering: '-report_date' },
+    });
+    return data.results;
+  } catch {
+    return [];
+  }
+}
+
+// ----------------------------------------------------------------
+// Pricing Strategy
+// ----------------------------------------------------------------
+export async function getPricingStrategy(bookId: number | string): Promise<PricingStrategy | null> {
+  try {
+    const { data } = await apiClient.get<PaginatedResponse<PricingStrategy>>('/pricing-strategies/', {
+      params: { book: bookId },
+    });
+    return data.results[0] || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function updatePricingStrategy(
+  id: number | string,
+  payload: Partial<PricingStrategy>,
+): Promise<PricingStrategy> {
+  const { data } = await apiClient.patch<PricingStrategy>(`/pricing-strategies/${id}/`, payload);
+  return data;
+}
+
+export async function logPriceChange(
+  id: number | string,
+  price: number,
+  phase: string,
+  reason: string,
+): Promise<PricingStrategy> {
+  const { data } = await apiClient.post<PricingStrategy>(`/pricing-strategies/${id}/log_change/`, {
+    price, phase, reason,
+  });
+  return data;
+}
+
+// ----------------------------------------------------------------
+// Distribution Channels
+// ----------------------------------------------------------------
+export async function getDistributionChannels(bookId: number | string): Promise<DistributionChannel[]> {
+  try {
+    const { data } = await apiClient.get<PaginatedResponse<DistributionChannel>>('/distribution-channels/', {
+      params: { book: bookId, ordering: 'platform' },
+    });
+    return data.results;
+  } catch {
+    return [];
+  }
+}
+
+export async function createDistributionChannel(
+  payload: Partial<DistributionChannel>,
+): Promise<DistributionChannel> {
+  const { data } = await apiClient.post<DistributionChannel>('/distribution-channels/', payload);
+  return data;
+}
+
+export async function updateDistributionChannel(
+  id: number | string,
+  payload: Partial<DistributionChannel>,
+): Promise<DistributionChannel> {
+  const { data } = await apiClient.patch<DistributionChannel>(`/distribution-channels/${id}/`, payload);
+  return data;
+}
+
+export async function deleteDistributionChannel(id: number | string): Promise<void> {
+  await apiClient.delete(`/distribution-channels/${id}/`);
+}
+
+export async function getPlatformChoices(): Promise<{ value: string; label: string }[]> {
+  try {
+    const { data } = await apiClient.get<{ choices: { value: string; label: string }[] }>(
+      '/distribution-channels/platform_choices/',
+    );
+    return data.choices;
+  } catch {
+    return [];
+  }
+}
+
+// ----------------------------------------------------------------
 // Utility helpers
 // ----------------------------------------------------------------
 export function buildCoverUrl(book: Book): string {
@@ -406,4 +520,138 @@ export function buildAvatarUrl(penName: PenName): string {
     return `${API_BASE.replace('/api', '')}${penName.profile_image}`;
   }
   return `https://placehold.co/200x200/0f172a/94a3b8?text=${encodeURIComponent(penName.name.charAt(0))}`;
+}
+
+// ----------------------------------------------------------------
+// Competitor Books
+// ----------------------------------------------------------------
+export async function getCompetitorBooks(params?: { genre?: string; search?: string; ordering?: string }): Promise<CompetitorBook[]> {
+  try {
+    const { data } = await apiClient.get<PaginatedResponse<CompetitorBook>>('/competitor-books/', { params });
+    return data.results;
+  } catch {
+    return [];
+  }
+}
+
+export async function createCompetitorBook(payload: Partial<CompetitorBook>): Promise<CompetitorBook> {
+  const { data } = await apiClient.post<CompetitorBook>('/competitor-books/', payload);
+  return data;
+}
+
+export async function updateCompetitorBook(id: number | string, payload: Partial<CompetitorBook>): Promise<CompetitorBook> {
+  const { data } = await apiClient.patch<CompetitorBook>(`/competitor-books/${id}/`, payload);
+  return data;
+}
+
+export async function deleteCompetitorBook(id: number | string): Promise<void> {
+  await apiClient.delete(`/competitor-books/${id}/`);
+}
+
+export async function estimateCompetitorRevenue(id: number | string): Promise<CompetitorBook> {
+  const { data } = await apiClient.post<CompetitorBook>(`/competitor-books/${id}/estimate_revenue/`);
+  return data;
+}
+
+export async function getCompetitorGenres(): Promise<string[]> {
+  try {
+    const { data } = await apiClient.get<{ genres: string[] }>('/competitor-books/genre_choices/');
+    return data.genres;
+  } catch {
+    return [];
+  }
+}
+
+// ----------------------------------------------------------------
+// ARC Readers
+// ----------------------------------------------------------------
+export async function getARCReaders(params?: { is_reliable?: boolean; search?: string }): Promise<ARCReader[]> {
+  try {
+    const { data } = await apiClient.get<PaginatedResponse<ARCReader>>('/arc-readers/', { params });
+    return data.results;
+  } catch {
+    return [];
+  }
+}
+
+export async function createARCReader(payload: Partial<ARCReader>): Promise<ARCReader> {
+  const { data } = await apiClient.post<ARCReader>('/arc-readers/', payload);
+  return data;
+}
+
+export async function updateARCReader(id: number | string, payload: Partial<ARCReader>): Promise<ARCReader> {
+  const { data } = await apiClient.patch<ARCReader>(`/arc-readers/${id}/`, payload);
+  return data;
+}
+
+export async function deleteARCReader(id: number | string): Promise<void> {
+  await apiClient.delete(`/arc-readers/${id}/`);
+}
+
+export async function markARCSent(id: number | string): Promise<ARCReader> {
+  const { data } = await apiClient.post<ARCReader>(`/arc-readers/${id}/mark_sent/`);
+  return data;
+}
+
+export async function markARCReviewed(id: number | string, rating?: number): Promise<ARCReader> {
+  const { data } = await apiClient.post<ARCReader>(`/arc-readers/${id}/mark_reviewed/`, rating ? { rating } : {});
+  return data;
+}
+
+// ----------------------------------------------------------------
+// Style Fingerprint
+// ----------------------------------------------------------------
+export async function getStyleFingerprint(penNameId: number | string): Promise<StyleFingerprint | null> {
+  try {
+    const { data } = await apiClient.get<PaginatedResponse<StyleFingerprint>>('/style-fingerprints/', {
+      params: { pen_name: penNameId },
+    });
+    return data.results[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function updateStyleFingerprint(id: number | string, payload: Partial<StyleFingerprint>): Promise<StyleFingerprint> {
+  const { data } = await apiClient.patch<StyleFingerprint>(`/style-fingerprints/${id}/`, payload);
+  return data;
+}
+
+export async function generateStylePrompt(id: number | string): Promise<{ style_system_prompt: string; fingerprint: StyleFingerprint }> {
+  const { data } = await apiClient.post<{ style_system_prompt: string; fingerprint: StyleFingerprint }>(`/style-fingerprints/${id}/generate_prompt/`);
+  return data;
+}
+
+export async function createStyleFingerprint(payload: Partial<StyleFingerprint>): Promise<StyleFingerprint> {
+  const { data } = await apiClient.post<StyleFingerprint>('/style-fingerprints/', payload);
+  return data;
+}
+
+// ----------------------------------------------------------------
+// Book Descriptions (Full — A/B)
+// ----------------------------------------------------------------
+export async function getBookDescriptionsFull(bookId: number | string): Promise<BookDescriptionFull[]> {
+  try {
+    const { data } = await apiClient.get<PaginatedResponse<BookDescriptionFull>>('/book-descriptions-full/', {
+      params: { book: bookId, ordering: 'version' },
+    });
+    return data.results;
+  } catch {
+    return [];
+  }
+}
+
+export async function updateBookDescriptionFull(id: number | string, payload: Partial<BookDescriptionFull>): Promise<BookDescriptionFull> {
+  const { data } = await apiClient.patch<BookDescriptionFull>(`/book-descriptions-full/${id}/`, payload);
+  return data;
+}
+
+export async function setActiveDescription(id: number | string): Promise<BookDescriptionFull> {
+  const { data } = await apiClient.post<BookDescriptionFull>(`/book-descriptions-full/${id}/set_active/`);
+  return data;
+}
+
+export async function approveDescription(id: number | string): Promise<BookDescriptionFull> {
+  const { data } = await apiClient.post<BookDescriptionFull>(`/book-descriptions-full/${id}/approve/`);
+  return data;
 }

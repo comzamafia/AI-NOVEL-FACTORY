@@ -29,6 +29,11 @@ from novels.models import (
     KeywordResearch,
     ReviewTracker,
     AdsPerformance,
+    PricingStrategy,
+    DistributionChannel,
+    CompetitorBook,
+    ARCReader,
+    StyleFingerprint,
 )
 from novels.utils.kdp_calculator import calc_ebook, calc_paperback, get_trim_size_choices, get_paper_type_choices
 from novels.tasks.keywords import run_keyword_research
@@ -48,6 +53,12 @@ from .serializers import (
     KeywordResearchSerializer,
     ReviewTrackerSerializer,
     AdsPerformanceSerializer,
+    PricingStrategySerializer,
+    DistributionChannelSerializer,
+    CompetitorBookSerializer,
+    ARCReaderSerializer,
+    StyleFingerprintSerializer,
+    BookDescriptionFullSerializer,
 )
 
 
@@ -767,3 +778,251 @@ class AdsPerformanceViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         return AdsPerformance.objects.filter(is_deleted=False).select_related('book')
 
+
+# =============================================================================
+# PRICING STRATEGY VIEWSET
+# =============================================================================
+
+class PricingStrategyViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for Pricing Strategy management.
+
+    Endpoints:
+      GET    /api/pricing-strategies/?book={id}   — get strategy for a book
+      PATCH  /api/pricing-strategies/{id}/        — update settings
+      POST   /api/pricing-strategies/{id}/log_change/  — manually log a price change
+    """
+    serializer_class = PricingStrategySerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['book', 'current_phase', 'auto_price_enabled']
+    ordering_fields = ['book', 'current_price_usd', 'created_at']
+    ordering = ['-created_at']
+
+    def get_queryset(self):
+        return PricingStrategy.objects.filter(is_deleted=False).select_related('book')
+
+    @action(detail=True, methods=['post'])
+    def log_change(self, request, pk=None):
+        """Manually log a price change to the history."""
+        strategy = self.get_object()
+        new_price = request.data.get('price')
+        new_phase = request.data.get('phase')
+        reason    = request.data.get('reason', 'Manual update')
+
+        if new_price is None or new_phase is None:
+            return Response(
+                {'error': 'price and phase are required'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        strategy.current_price_usd = new_price
+        strategy.current_phase = new_phase
+        strategy.log_price_change(new_price, new_phase, reason)
+        return Response(PricingStrategySerializer(strategy).data)
+
+
+# =============================================================================
+# DISTRIBUTION CHANNEL VIEWSET
+# =============================================================================
+
+class DistributionChannelViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for Distribution Channel management.
+
+    Endpoints:
+      GET    /api/distribution-channels/?book={id}  — get channels for a book
+      POST   /api/distribution-channels/            — add new channel
+      PATCH  /api/distribution-channels/{id}/       — update channel data
+      DELETE /api/distribution-channels/{id}/       — soft delete (deactivate)
+    """
+    serializer_class = DistributionChannelSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['book', 'platform', 'is_active']
+    search_fields = ['platform', 'asin_or_id']
+    ordering_fields = ['platform', 'revenue_usd', 'units_sold', 'created_at']
+    ordering = ['platform']
+
+    def get_queryset(self):
+        return DistributionChannel.objects.filter(is_deleted=False).select_related('book')
+
+    @action(detail=False, methods=['get'])
+    def platform_choices(self, request):
+        """Return all valid platform choices."""
+        from novels.models.distribution import DistributionPlatform
+        return Response({
+            'choices': [{'value': v, 'label': l} for v, l in DistributionPlatform.CHOICES]
+        })
+
+
+# =============================================================================
+# COMPETITOR BOOK VIEWSET
+# =============================================================================
+
+class CompetitorBookViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for Competitor Book market intelligence.
+
+    Endpoints:
+      GET    /api/competitor-books/            — list all tracked competitors
+      GET    /api/competitor-books/?genre=X    — filter by genre
+      POST   /api/competitor-books/            — add competitor to track
+      PATCH  /api/competitor-books/{id}/       — update competitor data
+      DELETE /api/competitor-books/{id}/       — remove from tracking
+      POST   /api/competitor-books/{id}/estimate_revenue/ — recalculate revenue estimate
+    """
+    serializer_class = CompetitorBookSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['genre', 'subgenre']
+    search_fields = ['title', 'author', 'asin', 'genre']
+    ordering_fields = ['bsr', 'avg_rating', 'review_count', 'estimated_monthly_revenue', 'price_usd']
+    ordering = ['bsr']
+
+    def get_queryset(self):
+        return CompetitorBook.objects.filter(is_deleted=False)
+
+    @action(detail=True, methods=['post'])
+    def estimate_revenue(self, request, pk=None):
+        """Recalculate revenue estimate based on current BSR and price."""
+        competitor = self.get_object()
+        competitor.estimate_revenue()
+        return Response(CompetitorBookSerializer(competitor).data)
+
+    @action(detail=False, methods=['get'])
+    def genre_choices(self, request):
+        """Return distinct genres currently being tracked."""
+        genres = CompetitorBook.objects.filter(is_deleted=False)\
+            .values_list('genre', flat=True).distinct().order_by('genre')
+        return Response({'genres': list(genres)})
+
+
+# =============================================================================
+# ARC READER VIEWSET
+# =============================================================================
+
+class ARCReaderViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for ARC Reader management.
+
+    Endpoints:
+      GET    /api/arc-readers/               — list all ARC readers
+      GET    /api/arc-readers/?is_reliable=true — reliable readers only
+      POST   /api/arc-readers/              — add reader
+      PATCH  /api/arc-readers/{id}/         — update reader info
+      DELETE /api/arc-readers/{id}/         — remove reader
+      POST   /api/arc-readers/{id}/mark_sent/  — record ARC copy sent
+      POST   /api/arc-readers/{id}/mark_reviewed/ — record review received
+    """
+    serializer_class = ARCReaderSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['is_reliable', 'email_opt_out']
+    search_fields = ['name', 'email', 'notes']
+    ordering_fields = ['name', 'reviews_left_count', 'arc_copies_received', 'avg_rating_given', 'unreliable_count']
+    ordering = ['-reviews_left_count']
+
+    def get_queryset(self):
+        return ARCReader.objects.filter(is_deleted=False)
+
+    @action(detail=True, methods=['post'])
+    def mark_sent(self, request, pk=None):
+        """Record that an ARC copy was sent to this reader."""
+        reader = self.get_object()
+        reader.arc_copies_received += 1
+        reader.last_email_sent = timezone.now()
+        reader.save(update_fields=['arc_copies_received', 'last_email_sent', 'updated_at'])
+        return Response(ARCReaderSerializer(reader).data)
+
+    @action(detail=True, methods=['post'])
+    def mark_reviewed(self, request, pk=None):
+        """Record that this reader left a review."""
+        reader = self.get_object()
+        rating = request.data.get('rating')
+        reader.reviews_left_count += 1
+        if rating:
+            # Update running average
+            total = reader.avg_rating_given * (reader.reviews_left_count - 1) + float(rating)
+            reader.avg_rating_given = round(total / reader.reviews_left_count, 2)
+        reader.save(update_fields=['reviews_left_count', 'avg_rating_given', 'updated_at'])
+        reader.mark_unreliable_if_needed()
+        return Response(ARCReaderSerializer(reader).data)
+
+
+# =============================================================================
+# STYLE FINGERPRINT VIEWSET
+# =============================================================================
+
+class StyleFingerprintViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for Style Fingerprint management (per pen name).
+
+    Endpoints:
+      GET    /api/style-fingerprints/?pen_name={id}  — get fingerprint for pen name
+      PATCH  /api/style-fingerprints/{id}/           — update metrics
+      POST   /api/style-fingerprints/{id}/generate_prompt/ — regenerate system prompt
+    """
+    serializer_class = StyleFingerprintSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['pen_name', 'needs_recalculation']
+    ordering_fields = ['pen_name', 'chapters_analyzed', 'last_recalculated']
+    ordering = ['pen_name']
+
+    def get_queryset(self):
+        return StyleFingerprint.objects.filter(is_deleted=False).select_related('pen_name')
+
+    @action(detail=True, methods=['post'])
+    def generate_prompt(self, request, pk=None):
+        """Regenerate the AI system prompt based on current metrics."""
+        fingerprint = self.get_object()
+        prompt = fingerprint.generate_system_prompt()
+        return Response({
+            'style_system_prompt': prompt,
+            'fingerprint': StyleFingerprintSerializer(fingerprint).data,
+        })
+
+
+# =============================================================================
+# BOOK DESCRIPTION FULL VIEWSET (replaces read-only version)
+# =============================================================================
+
+class BookDescriptionFullViewSet(viewsets.ModelViewSet):
+    """
+    Full CRUD ViewSet for Book Descriptions (A/B versions).
+
+    Endpoints:
+      GET    /api/book-descriptions-full/?book={id}  — list versions for a book
+      PATCH  /api/book-descriptions-full/{id}/       — edit description
+      POST   /api/book-descriptions-full/{id}/set_active/ — make this version active
+      POST   /api/book-descriptions-full/{id}/approve/    — approve description
+    """
+    serializer_class = BookDescriptionFullSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['book', 'version', 'is_active', 'is_approved']
+    ordering_fields = ['book', 'version', 'created_at']
+    ordering = ['book', 'version']
+
+    def get_queryset(self):
+        return BookDescription.objects.filter(is_deleted=False).select_related('book')
+
+    @action(detail=True, methods=['post'])
+    def set_active(self, request, pk=None):
+        """Set this version as the active description and deactivate others."""
+        description = self.get_object()
+        BookDescription.objects.filter(book=description.book, is_deleted=False)\
+            .update(is_active=False)
+        description.is_active = True
+        description.save(update_fields=['is_active', 'updated_at'])
+        return Response(BookDescriptionFullSerializer(description).data)
+
+    @action(detail=True, methods=['post'])
+    def approve(self, request, pk=None):
+        """Approve this description version."""
+        description = self.get_object()
+        description.is_approved = True
+        description.approved_at = timezone.now()
+        description.save(update_fields=['is_approved', 'approved_at', 'updated_at'])
+        return Response(BookDescriptionFullSerializer(description).data)

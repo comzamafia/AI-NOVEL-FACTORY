@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useState, useRef } from 'react';
-import { BookOpen, Menu, X, Users, Home, BookMarked, Search, BarChart3, UserCog, BookPlus, TrendingUp } from 'lucide-react';
+import { BookOpen, Menu, X, Users, Home, BookMarked, Search, BarChart3, UserCog, BookPlus, TrendingUp, BarChart2, Mail } from 'lucide-react';
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -20,7 +20,9 @@ export default function Navbar() {
     { href: '/dashboard', label: 'Dashboard', icon: <BarChart3 size={15} /> },
     { href: '/pen-names', label: 'Pen Names', icon: <UserCog size={15} /> },
     { href: '/books/new', label: 'New Book',  icon: <BookPlus size={15} /> },
-    { href: '/analytics',  label: 'Analytics',  icon: <TrendingUp size={15} /> },
+    { href: '/analytics',    label: 'Analytics',    icon: <TrendingUp size={15} /> },
+    { href: '/competitors',  label: 'Competitors',  icon: <BarChart2 size={15} /> },
+    { href: '/arc-readers',  label: 'ARC Readers',  icon: <Mail size={15} /> },
   ];
 
   const handleSearch = (q: string) => {

@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ExternalLink, BookOpen, Lock, ChevronRight, ImageIcon, ListOrdered, Key, BookOpenCheck } from 'lucide-react';
+import { ExternalLink, BookOpen, Lock, ChevronRight, ImageIcon, ListOrdered, Key, BookOpenCheck, Star, Megaphone, DollarSign, Globe, FileText } from 'lucide-react';
 import { getBook, getChapters, getActiveDescription, buildCoverUrl } from '@/lib/api';
 import StarRating from '@/components/StarRating';
 import UpsellBanner from '@/components/UpsellBanner';
@@ -120,6 +120,51 @@ export default async function BookPage({ params }: BookPageProps) {
           >
             <BookOpenCheck size={15} />
             Story Bible
+          </Link>
+
+          {/* Reviews link */}
+          <Link
+            href={`/books/${params.id}/reviews`}
+            className="flex items-center gap-2 w-full justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-sm font-medium py-2.5 px-4 rounded-xl border border-slate-700 transition-colors"
+          >
+            <Star size={15} />
+            Reviews & Ratings
+          </Link>
+
+          {/* Ads Performance link */}
+          <Link
+            href={`/books/${params.id}/ads`}
+            className="flex items-center gap-2 w-full justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-sm font-medium py-2.5 px-4 rounded-xl border border-slate-700 transition-colors"
+          >
+            <Megaphone size={15} />
+            Ads Performance
+          </Link>
+
+          {/* Pricing Strategy link */}
+          <Link
+            href={`/books/${params.id}/pricing`}
+            className="flex items-center gap-2 w-full justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-sm font-medium py-2.5 px-4 rounded-xl border border-slate-700 transition-colors"
+          >
+            <DollarSign size={15} />
+            Pricing Strategy
+          </Link>
+
+          {/* Distribution Channels link */}
+          <Link
+            href={`/books/${params.id}/distribution`}
+            className="flex items-center gap-2 w-full justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-sm font-medium py-2.5 px-4 rounded-xl border border-slate-700 transition-colors"
+          >
+            <Globe size={15} />
+            Distribution Channels
+          </Link>
+
+          {/* A/B Descriptions link */}
+          <Link
+            href={`/books/${params.id}/descriptions`}
+            className="flex items-center gap-2 w-full justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-sm font-medium py-2.5 px-4 rounded-xl border border-slate-700 transition-colors"
+          >
+            <FileText size={15} />
+            A/B Descriptions
           </Link>
 
           {/* Stats */}
