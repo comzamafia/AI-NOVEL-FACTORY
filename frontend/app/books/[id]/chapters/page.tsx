@@ -26,19 +26,23 @@ import type { Book, Chapter, ChapterStatus } from '@/types';
 const STATUS_STYLE: Record<ChapterStatus, string> = {
   pending:        'bg-slate-700 text-slate-300',
   ready_to_write: 'bg-blue-900/50 text-blue-300',
+  writing:        'bg-cyan-900/50 text-cyan-300',
   written:        'bg-yellow-900/50 text-yellow-300',
-  qa_review:      'bg-purple-900/50 text-purple-300',
+  pending_qa:     'bg-purple-900/50 text-purple-300',
   approved:       'bg-emerald-900/50 text-emerald-300',
   rejected:       'bg-red-900/50 text-red-300',
+  published:      'bg-green-900/50 text-green-300',
 };
 
 const STATUS_LABEL: Record<ChapterStatus, string> = {
   pending:        'Pending',
   ready_to_write: 'Ready to Write',
+  writing:        'Writing',
   written:        'Written',
-  qa_review:      'QA Review',
+  pending_qa:     'Pending QA',
   approved:       'Approved',
   rejected:       'Rejected',
+  published:      'Published',
 };
 
 // ── Reject Modal ──────────────────────────────────────────────────
@@ -204,7 +208,7 @@ export default function ChapterManagePage() {
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
   const approved   = chapters.filter(c => c.status === 'approved').length;
-  const inReview   = chapters.filter(c => c.status === 'qa_review').length;
+  const inReview   = chapters.filter(c => c.status === 'pending_qa').length;
   const rejected   = chapters.filter(c => c.status === 'rejected').length;
 
   return (
@@ -276,7 +280,7 @@ export default function ChapterManagePage() {
 
         {/* Filters */}
         <div className="flex items-center gap-2 mb-6 flex-wrap">
-          {(['all', 'pending', 'ready_to_write', 'written', 'qa_review', 'approved', 'rejected'] as const).map(f => (
+          {(['all', 'pending', 'ready_to_write', 'writing', 'written', 'pending_qa', 'approved', 'rejected', 'published'] as const).map(f => (
             <button
               key={f}
               onClick={() => { setFilterStatus(f); setPage(1); }}
@@ -403,8 +407,8 @@ export default function ChapterManagePage() {
                             </button>
                           )}
 
-                          {/* Approve (written or qa_review) */}
-                          {(ch.status === 'written' || ch.status === 'qa_review') && (
+                          {/* Approve (written or pending_qa) */}
+                          {(ch.status === 'written' || ch.status === 'pending_qa') && (
                             <button
                               onClick={() => handleApprove(ch)}
                               disabled={busy[ch.id]}
@@ -417,7 +421,7 @@ export default function ChapterManagePage() {
                           )}
 
                           {/* Reject */}
-                          {(ch.status === 'written' || ch.status === 'qa_review' || ch.status === 'approved') && (
+                          {(ch.status === 'written' || ch.status === 'pending_qa' || ch.status === 'approved') && (
                             <button
                               onClick={() => setRejectTarget({ id: ch.id, num: ch.chapter_number })}
                               disabled={busy[ch.id]}

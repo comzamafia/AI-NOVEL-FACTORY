@@ -1,0 +1,26 @@
+# ─────────────────────────────────────────────────────────────────
+# AI Novel Factory — Railway Configuration
+#
+# This file configures the PRIMARY service (Django web server).
+# Celery Worker and Celery Beat are separate Railway services
+# that share the same repo and build, but use different start commands:
+#
+#   Worker:  celery -A config worker --loglevel=info -Q default,ai_generation
+#   Beat:    celery -A config beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+#
+# PostgreSQL and Redis are added as Railway Plugins (not services).
+# ─────────────────────────────────────────────────────────────────
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "python manage.py migrate --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 4 --timeout 120 --access-logfile - --error-logfile -"
+healthcheckPath = "/api/"
+healthcheckTimeout = 60
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+[deploy.staticDir]
+# Django static files are served by whitenoise — no separate static dir needed

@@ -7,6 +7,9 @@ django-filter>=25.2,<26.0
 # WSGI Server
 gunicorn>=23.0,<24.0
 
+# Static file serving (production — Whitenoise middleware)
+whitenoise>=6.8,<7.0
+
 # State Machine
 django-fsm>=3.0,<4.0
 
@@ -17,6 +20,7 @@ django-celery-beat>=2.7,<3.0
 
 # Database
 psycopg2-binary>=2.9,<3.0
+dj-database-url>=2.3,<3.0
 
 # Environment & Configuration
 python-dotenv>=1.2,<2.0

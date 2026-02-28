@@ -21,7 +21,9 @@ if (mediaHost) {
 }
 
 const nextConfig = {
-  output: 'standalone',
+  // 'standalone' is needed for Docker / Railway self-hosted.
+  // Vercel handles Next.js natively — set NEXT_OUTPUT_MODE=standalone only for Docker builds.
+  ...(process.env.NEXT_OUTPUT_MODE === 'standalone' ? { output: 'standalone' } : {}),
   images: { remotePatterns },
   async rewrites() {
     const apiBase = process.env.INTERNAL_API_URL || 'http://localhost:8000';

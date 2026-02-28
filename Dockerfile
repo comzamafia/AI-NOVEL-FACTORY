@@ -42,15 +42,10 @@ RUN useradd --create-home --shell /bin/bash appuser \
     && chown -R appuser:appuser /app
 USER appuser
 
-# Collect static files at build time
-RUN python manage.py collectstatic --noinput
+# Collect static files at build time (whitenoise serves them in production)
+RUN SECRET_KEY=build-time-dummy DB_ENGINE=sqlite python manage.py collectstatic --noinput
 
 EXPOSE 8000
 
-# Default: run gunicorn (override for celery worker)
-CMD ["gunicorn", "config.wsgi:application", \
-     "--bind", "0.0.0.0:8000", \
-     "--workers", "4", \
-     "--timeout", "120", \
-     "--access-logfile", "-", \
-     "--error-logfile", "-"]
+# Railway injects $PORT dynamically (defaults to 8000 for other platforms)
+CMD ["sh", "-c", "gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 4 --timeout 120 --access-logfile - --error-logfile -"]

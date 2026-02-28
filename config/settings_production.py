@@ -34,6 +34,19 @@ if _missing:
     )
 
 # ---------------------------------------------------------------------------
+# Database — parse DATABASE_URL (injected by Railway PostgreSQL plugin)
+# ---------------------------------------------------------------------------
+
+DATABASES = {
+    "default": dj_database_url.config(
+        env="DATABASE_URL",
+        conn_max_age=600,
+        conn_health_checks=True,
+        ssl_require=True,
+    )
+}
+
+# ---------------------------------------------------------------------------
 # Core
 # ---------------------------------------------------------------------------
 
@@ -166,11 +179,19 @@ if _sentry_dsn:
     )
 
 # ---------------------------------------------------------------------------
-# Static / Media
+# Static / Media — Whitenoise serves static files directly
 # ---------------------------------------------------------------------------
 
 STATIC_ROOT = os.getenv("STATIC_ROOT", "/app/staticfiles")
 MEDIA_ROOT = os.getenv("MEDIA_ROOT", "/app/media")
+
+# Whitenoise: compressed, cached static files with forever headers
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+# Ensure whitenoise middleware is present (insert after SecurityMiddleware)
+if "whitenoise.middleware.WhiteNoiseMiddleware" not in MIDDLEWARE:  # noqa: F405
+    _sec_idx = MIDDLEWARE.index("django.middleware.security.SecurityMiddleware")  # noqa: F405
+    MIDDLEWARE.insert(_sec_idx + 1, "whitenoise.middleware.WhiteNoiseMiddleware")  # noqa: F405
 
 # ---------------------------------------------------------------------------
 # Celery — production task limits
